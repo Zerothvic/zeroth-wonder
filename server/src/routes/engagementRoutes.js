@@ -1,0 +1,92 @@
+import { Router } from "express";
+import { v4 as uuidv4 } from "uuid";
+import Engagement from "../models/Engagement.js";
+import Product from "../models/Product.js";
+import { applyCoinDelta } from "../services/coinEngine.js";
+import { optionalAuth, requireAuth } from "../middleware/auth.js";
+import { engagementLimiter } from "../middleware/rateLimit.js";
+
+const router = Router();
+const COIN_VALUES = { like: 5, comment: 10, share: 15 };
+
+function ensureGuestSession(req, res) {
+  let sessionId = req.cookies?.guestSessionId;
+  if (!sessionId) {
+    sessionId = uuidv4();
+    res.cookie("guestSessionId", sessionId, { maxAge: 90 * 24 * 60 * 60 * 1000, httpOnly: true });
+  }
+  return sessionId;
+}
+
+// POST /api/engagements/like — guests allowed, but coins only ever post to a real user
+router.post("/like", engagementLimiter, optionalAuth, async (req, res) => {
+  try {
+    const { productId } = req.body;
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const identity = req.user
+      ? { userId: req.user._id }
+      : { sessionId: ensureGuestSession(req, res) };
+
+    const coins = req.user ? COIN_VALUES.like : 0; // guests earn 0 spendable coins until they sign up
+    const engagement = await Engagement.create({ ...identity, productId, type: "like", coinsAwarded: coins });
+
+    if (req.user && coins > 0) {
+      await applyCoinDelta({ userId: req.user._id, delta: coins, reason: "engagement:like", refId: engagement._id });
+    }
+    res.status(201).json({ engagement });
+  } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ error: "Already liked" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/engagements/comment — requires an account (coins only make sense for real users)
+router.post("/comment", engagementLimiter, requireAuth, async (req, res) => {
+  try {
+    const { productId, text } = req.body;
+    if (!text || text.trim().length < 8) {
+      return res.status(400).json({ error: "Comment must be at least 8 characters" });
+    }
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ error: "Product not found" });
+
+    const engagement = await Engagement.create({
+      userId: req.user._id, productId, type: "comment", coinsAwarded: COIN_VALUES.comment,
+    });
+    await applyCoinDelta({ userId: req.user._id, delta: COIN_VALUES.comment, reason: "engagement:comment", refId: engagement._id });
+    res.status(201).json({ engagement });
+  } catch (err) {
+    if (err.code === 11000) return res.status(200).json({ message: "Reward already claimed for this product; comment still recorded elsewhere." });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/engagements/share/confirm — bottleneck 12.1: honor-system + confirmation click,
+// never trust the initial share-intent click alone.
+router.post("/share/confirm", engagementLimiter, requireAuth, async (req, res) => {
+  try {
+    const { productId, platform } = req.body;
+    const allowed = ["facebook", "instagram", "twitter", "whatsapp", "linkedin"];
+    if (!allowed.includes(platform)) return res.status(400).json({ error: "Unknown platform" });
+
+    const existingPlatforms = await Engagement.distinct("platform", {
+      userId: req.user._id, productId, type: "share",
+    });
+    if (existingPlatforms.length >= 3 && !existingPlatforms.includes(platform)) {
+      return res.status(200).json({ message: "Max 3 rewarded platforms per product already reached" });
+    }
+
+    const engagement = await Engagement.create({
+      userId: req.user._id, productId, type: "share", platform, coinsAwarded: COIN_VALUES.share,
+    });
+    await applyCoinDelta({ userId: req.user._id, delta: COIN_VALUES.share, reason: "engagement:share", refId: engagement._id });
+    res.status(201).json({ engagement });
+  } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ error: "Already rewarded for this platform" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export default router;

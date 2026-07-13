@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply font-body text-ink;
+}
+
+h1, h2, h3 {
+  @apply font-display;
+}
+
+@keyframes dice-roll-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-30deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes cube-tumble {
+  0% {
+    transform: rotateX(0deg) rotateY(0deg);
+  }
+  100% {
+    transform: rotateX(360deg) rotateY(360deg);
+  }
+}
