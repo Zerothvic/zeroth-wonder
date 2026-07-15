@@ -13,7 +13,13 @@ function ensureGuestSession(req, res) {
   let sessionId = req.cookies?.guestSessionId;
   if (!sessionId) {
     sessionId = uuidv4();
-    res.cookie("guestSessionId", sessionId, { maxAge: 90 * 24 * 60 * 60 * 1000, httpOnly: true });
+    const isProd = process.env.NODE_ENV === "production";
+    res.cookie("guestSessionId", sessionId, {
+      maxAge: 90 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+    });
   }
   return sessionId;
 }

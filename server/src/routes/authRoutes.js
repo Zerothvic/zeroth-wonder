@@ -14,7 +14,9 @@ const router = Router();
 function issueTokens(res, user) {
   const accessToken = jwt.sign({ sub: user._id }, process.env.JWT_ACCESS_SECRET, { expiresIn: "15m" });
   const refreshToken = jwt.sign({ sub: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "30d" });
-  const cookieOpts = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" };
+  const isProd = process.env.NODE_ENV === "production";
+  // Cross-domain cookies (Vercel client + Render API) require sameSite:"none", which itself requires secure:true — browsers reject none+insecure combos.
+  const cookieOpts = { httpOnly: true, secure: isProd, sameSite: isProd ? "none" : "lax" };
   res.cookie("accessToken", accessToken, { ...cookieOpts, maxAge: 15 * 60 * 1000 });
   res.cookie("refreshToken", refreshToken, { ...cookieOpts, maxAge: 30 * 24 * 60 * 60 * 1000 });
 }
@@ -176,8 +178,10 @@ router.post("/refresh", async (req, res) => {
 
 // POST /api/auth/logout
 router.post("/logout", (req, res) => {
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
+  const isProd = process.env.NODE_ENV === "production";
+  const cookieOpts = { httpOnly: true, secure: isProd, sameSite: isProd ? "none" : "lax" };
+  res.clearCookie("accessToken", cookieOpts);
+  res.clearCookie("refreshToken", cookieOpts);
   res.json({ ok: true });
 });
 
