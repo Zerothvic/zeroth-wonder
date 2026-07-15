@@ -1,4 +1,5 @@
 import "dotenv/config";
+import express from "express";
 import mongoose from "mongoose";
 import { Worker } from "bullmq";
 import { redisConnection } from "../config/redis.js";
@@ -7,6 +8,11 @@ import { runFortuneJob } from "./fortuneWorker.js";
 import { runComicJob } from "./comicWorker.js";
 import { runSongJob } from "./songWorker.js";
 import { runDocumentaryJob } from "./documentaryWorker.js";
+
+// Bind the port FIRST, before any await 
+healthApp.get("/health", (req, res) => res.json({ ok: true, worker: "running" }));
+const PORT = process.env.PORT || 10000;
+healthApp.listen(PORT, () => console.log(`[worker] health endpoint on :${PORT}`));
 
 await mongoose.connect(process.env.MONGO_URI);
 console.log("[worker] connected to MongoDB, listening on 'generation' queue");
@@ -18,8 +24,6 @@ const HANDLERS = {
   documentary: runDocumentaryJob,
 };
 
-// This process runs SEPARATELY from the Express API (npm run worker).
-// Bottleneck 12.4: long AI calls happen here, never inside an HTTP request.
 new Worker(
   "generation",
   async (job) => {
@@ -50,7 +54,7 @@ new Worker(
       genJob.status = "failed";
       genJob.failureReason = err.message;
       await genJob.save();
-      throw err; // let BullMQ retry per queue settings
+      throw err;
     }
   },
   { connection: redisConnection, concurrency: 3 }
