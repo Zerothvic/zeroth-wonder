@@ -1,27 +1,30 @@
-import nodemailer from "nodemailer";
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Uses Brevo's REST API over HTTPS (port 443), NOT SMTP — this deliberately
+// avoids ports 25/465/587, which Render's free tier blocks outbound.
 
 export async function sendVerificationEmail(toEmail, verificationToken) {
   const verifyUrl = `${process.env.CLIENT_URL}/verify?token=${verificationToken}`;
 
-  await transporter.sendMail({
-    from: `"Zeroth Wonder" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
-    to: toEmail,
-    subject: "Verify your Zeroth Wonder account",
-    html: `
-      <p>Welcome to Zeroth Wonder!</p>
-      <p>Click below to verify your email and claim your sign-up coins:</p>
-      <p><a href="${verifyUrl}">${verifyUrl}</a></p>
-      <p>If you didn't create this account, you can ignore this email.</p>
-    `,
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { name: "Zeroth Wonder", email: process.env.SMTP_FROM },
+      to: [{ email: toEmail }],
+      subject: "Verify your Zeroth Wonder account",
+      htmlContent: `
+        <p>Welcome to Zeroth Wonder!</p>
+        <p>Click below to verify your email and claim your sign-up coins:</p>
+        <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+        <p>If you didn't create this account, you can ignore this email.</p>
+      `,
+    }),
   });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`Brevo API error ${res.status}: ${errorBody}`);
+  }
 }
