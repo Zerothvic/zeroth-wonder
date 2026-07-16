@@ -123,7 +123,7 @@ router.get("/verify", async (req, res) => {
     }
 
     issueTokens(res, user);
-    res.json({ message: "Email verified", user: { id: user._id, email: user.email } });
+    res.json({ message: "Email verified! You can now login", user: { id: user._id, email: user.email } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
