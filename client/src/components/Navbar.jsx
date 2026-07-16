@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore.js";
 import Logo from "./Logo.jsx";
+import MagicBackground from "./MagicBackground.jsx";
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -18,8 +19,9 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="bg-orange/85 backdrop-blur-md text-cream shadow-md relative z-30">
-        <div className="max-w-6xl mx-auto px-3 py-3 sm:px-4 sm:py-5 md:py-7 flex items-center justify-between">
+      <header className="bg-orange/70 backdrop-blur-md text-cream shadow-md relative z-30 overflow-hidden">
+        <MagicBackground />
+        <div className="max-w-6xl mx-auto px-3 py-3 sm:px-4 sm:py-5 md:py-7 flex items-center justify-between relative z-10">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setOpen(true)}
@@ -105,11 +107,13 @@ export default function Navbar() {
       />
 
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-orange text-cream z-50 shadow-2xl transform transition-transform duration-300 md:hidden ${
+        className={`fixed top-0 left-0 h-full w-72 bg-orange text-cream z-50 shadow-2xl transform transition-transform duration-300 md:hidden overflow-hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between px-5 py-6 border-b border-cream/20">
+        <MagicBackground />
+
+        <div className="relative z-10 flex items-center justify-between px-5 py-6 border-b border-cream/20">
           <Logo size="sm" />
           <button onClick={close} aria-label="Close menu" className="p-2 rounded-lg hover:bg-cream/15 transition">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -119,7 +123,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        <nav className="flex flex-col p-5 gap-1 text-base font-semibold">
+        <nav className="relative z-10 flex flex-col p-5 gap-1 text-base font-semibold">
           <Link to="/" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 transition">
             Home
           </Link>

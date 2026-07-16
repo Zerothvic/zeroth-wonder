@@ -77,7 +77,7 @@ export default function Home() {
   return (
     <div className="space-y-16">
       <section className="text-center py-12">
-        <h1 className="text-7xl font-bold text-white mb-4 drop-shadow-md">ZEROTH WONDER</h1>
+        <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-md">ZEROTH WONDER</h1>
         <p className="text-lg text-white max-w-xl mx-auto mb-8 drop-shadow-sm">
           Welcome to wonderland.....for adults!
         </p>
