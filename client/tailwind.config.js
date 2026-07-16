@@ -14,6 +14,7 @@ export default {
       fontFamily: {
         display: ["Poppins", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        magic: ["Griffy", "cursive"],
       },
     },
   },

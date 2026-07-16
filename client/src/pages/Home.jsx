@@ -77,8 +77,43 @@ export default function Home() {
   return (
     <div className="space-y-16">
       <section className="text-center py-12">
-        <h1 className="text-5xl font-bold text-white mb-4 drop-shadow-md">ZEROTH WONDER</h1>
-        <p className="text-lg text-white max-w-xl mx-auto mb-8 drop-shadow-sm">
+        <h1
+          className="relative inline-block font-magic whitespace-nowrap mb-4 drop-shadow-md"
+          style={{
+            animation: "hero-float 4s ease-in-out infinite",
+            fontSize: "clamp(2rem, 9vw, 4.5rem)",
+          }}
+        >
+          <span
+            className="bg-clip-text text-transparent"
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, #F2E2CF, #FFFFFF, #EDC45A, #65BCB5, #FFFFFF, #F2E2CF)",
+              backgroundSize: "300% auto",
+              animation: "text-shimmer 6s linear infinite",
+              filter: "drop-shadow(1px 1px 2px rgba(43,33,24,0.3))",
+            }}
+          >
+            ZEROTH WONDER
+          </span>
+
+          <svg
+            viewBox="0 0 24 24"
+            className="absolute -top-3 -left-6 w-6 h-6"
+            style={{ animation: "sparkle-orbit-a 3.2s ease-in-out infinite" }}
+          >
+            <path d="M12 0 C12 6 14 10 20 12 C14 14 12 18 12 24 C12 18 10 14 4 12 C10 10 12 6 12 0 Z" fill="#EDC45A" />
+          </svg>
+          <svg
+            viewBox="0 0 24 24"
+            className="absolute -bottom-2 -right-7 w-5 h-5"
+            style={{ animation: "sparkle-orbit-b 3.8s ease-in-out infinite" }}
+          >
+            <path d="M12 0 C12 6 14 10 20 12 C14 14 12 18 12 24 C12 18 10 14 4 12 C10 10 12 6 12 0 Z" fill="#65BCB5" />
+          </svg>
+        </h1>
+
+        <p className="text-2g text-white max-w-xl mx-auto mb-8 drop-shadow-sm">
           Welcome to wonderland.....for adults!
         </p>
         <Link to="/products" className="bg-blue text-white px-8 py-3 rounded-full font-semibold hover:opacity-90">
