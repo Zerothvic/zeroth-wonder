@@ -12,4 +12,9 @@ export const useCartStore = create((set) => ({
     const { data } = await api.get("/cart");
     set({ items: data });
   },
+  removeFromCart: async (productId) => {
+    await api.delete(`/cart/${productId}`);
+    const { data } = await api.get("/cart");
+    set({ items: data });
+  },
 }));

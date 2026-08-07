@@ -3,9 +3,24 @@ import { api } from "../api/client.js";
 
 export default function Profile() {
   const [data, setData] = useState(null);
+  const [removingId, setRemovingId] = useState(null);
 
-  useEffect(() => { api.get("/profile").then(({ data }) => setData(data)); }, []);
+  const load = () => api.get("/profile").then(({ data }) => setData(data));
+  useEffect(() => { load(); }, []);
+
   if (!data) return <p>Loading…</p>;
+
+  const removeFromCart = async (productId) => {
+    setRemovingId(productId);
+    try {
+      await api.delete(`/cart/${productId}`);
+      await load();
+    } catch (err) {
+      alert(err.response?.data?.error || "Couldn't remove item");
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -21,9 +36,18 @@ export default function Profile() {
         <h2 className="text-xl font-bold mb-3">Cart</h2>
         <div className="grid gap-3">
           {data.cart.map((item) => (
-            <div key={item._id} className="bg-white rounded-xl p-4 shadow-sm flex justify-between">
+            <div key={item._id} className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center">
               <span>{item.productId.title}</span>
-              <span className="font-semibold">{item.productId.coinPrice} coins</span>
+              <div className="flex items-center gap-4">
+                <span className="font-semibold">{item.productId.coinPrice} coins</span>
+                <button
+                  onClick={() => removeFromCart(item.productId._id)}
+                  disabled={removingId === item.productId._id}
+                  className="text-sm text-orange font-semibold hover:underline disabled:opacity-50"
+                >
+                  {removingId === item.productId._id ? "Removing…" : "Remove"}
+                </button>
+              </div>
             </div>
           ))}
           {data.cart.length === 0 && <p className="text-ink/50 text-sm">Nothing in cart yet.</p>}
