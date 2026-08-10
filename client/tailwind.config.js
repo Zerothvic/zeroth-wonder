@@ -15,6 +15,7 @@ export default {
         display: ["Poppins", "sans-serif"],
         body: ["Inter", "sans-serif"],
         magic: ["Cinzel", "serif"],
+        elongated: ["Cormorant", "serif"],
       },
     },
   },

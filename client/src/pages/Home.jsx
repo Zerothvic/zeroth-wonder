@@ -78,7 +78,7 @@ export default function Home() {
     <div className="space-y-16">
       <section className="text-center py-12">
         <h1
-          className="relative inline-block font-magic font-black uppercase whitespace-nowrap mb-4"
+          className="relative inline-block font-magic font-black uppercase whitespace-nowrap mb-1"
           style={{
             fontSize: "clamp(2rem, 9vw, 4.5rem)",
             letterSpacing: "0.05em",
@@ -98,8 +98,22 @@ export default function Home() {
           </span>
         </h1>
 
-        <p className="text-2g text-white max-w-xl mx-auto mb-8 drop-shadow-sm">
-          Welcome to wonderland.....for adults!
+        <p
+          className="font-elongated italic whitespace-nowrap mb-14"
+          style={{ fontSize: "clamp(1.1rem, 4vw, 2.25rem)", letterSpacing: "0.03em" }}
+        >
+          <span
+            className="bg-clip-text text-transparent"
+            style={{
+              backgroundImage:
+                "linear-gradient(90deg, #F2E2CF, #FFFFFF, #EDC45A, #65BCB5, #FFFFFF, #F2E2CF)",
+              backgroundSize: "300% auto",
+              animation: "text-shimmer 10s linear infinite",
+              filter: "drop-shadow(1px 1px 2px rgba(43,33,24,0.3))",
+            }}
+          >
+            wonderland......for adults!
+          </span>
         </p>
         <Link to="/products" className="bg-blue text-white px-8 py-3 rounded-full font-semibold hover:opacity-90">
           Explore
@@ -107,9 +121,7 @@ export default function Home() {
       </section>
 
       <section>
-        <h2 className="text-center text-sm font-semibold uppercase tracking-widest text-white mb-8 drop-shadow-sm">
-          Special attractions include:
-        </h2>
+        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {STEPS.map((step, i) => (
             <div
