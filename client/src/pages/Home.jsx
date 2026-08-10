@@ -68,10 +68,10 @@ function DiceCube({ front, size = 96, duration = 9 }) {
   );
 }
 
-const STEPS = ["Seeing yourself in a comic book, because why not for a superhero like you?", 
-                "Getting a glimpse into your future. We know you're nosy", 
+const STEPS = ["See yourself in a comic book", 
+                "Let's read your fortune", 
                 "Your life gets a theme song..haha", 
-                "A personalised Netflix (and chill) documentary. Starring: You, etc"];
+                "Star in a documentary"];
 
 export default function Home() {
   return (
