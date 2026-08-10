@@ -1,14 +1,10 @@
-/**
- * AI Gateway — bottleneck 12.2 solution.
- * Every provider call in the app goes through here, never directly from a
- * worker/controller. When a free-tier is throttled or a provider is swapped,
- * you change ONE file, not every worker.
- */
+
 
 import { InferenceClient } from "@huggingface/inference";
 
 const TEXT_PROVIDERS = ["gemini", "groq"];
 const IMAGE_PROVIDERS = ["huggingface-flux", "gemini-image"];
+const TTS_MODELS = ["hexgrad/Kokoro-82M", "ResembleAI/chatterbox"];
 
 async function callWithFallback(providers, fn) {
   let lastErr;
@@ -97,7 +93,30 @@ export async function generateImage(prompt) {
   });
 }
 
+export async function generateInstrumental(prompt) {
+  const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
+  const audio = await client.textToSpeech({
+    provider: "auto",
+    model: "facebook/musicgen-small",
+    inputs: prompt,
+  });
+  const arrayBuffer = await audio.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
 // Stub — wire up a free TTS provider here (rotates often, see PRD 11).
 export async function generateSpeech(text) {
-  throw new Error("TODO: wire a free TTS provider in aiGateway.generateSpeech()");
+  const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
+  let lastErr;
+  for (const model of TTS_MODELS) {
+    try {
+      const audio = await client.textToSpeech({ provider: "auto", model, inputs: text });
+      const arrayBuffer = await audio.arrayBuffer();
+      return { provider: `huggingface:${model}`, result: Buffer.from(arrayBuffer) };
+    } catch (err) {
+      lastErr = err;
+      console.warn(`[aiGateway] TTS model ${model} failed, trying next:`, err.message);
+    }
+  }
+  throw lastErr;
 }

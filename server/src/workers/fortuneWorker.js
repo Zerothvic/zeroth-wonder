@@ -1,6 +1,6 @@
 import { generateText } from "../services/aiGateway.js";
-// import { renderTextOnTemplatePNG } from "../services/imageCompose.js"; // implement with sharp/canvas
-// import { uploadToStorage } from "../services/storage.js"; // implement with Cloudinary SDK
+import { renderFortunePNG } from "../services/imageCompose.js";
+import { uploadBufferToCloudinary } from "../services/storage.js";
 
 export async function runFortuneJob(genJob) {
   const { provider, result: fortuneText } = await generateText(
@@ -8,8 +8,8 @@ export async function runFortuneJob(genJob) {
     { system: "You are a chaotic carnival fortune teller. Never mention real people." }
   );
 
-  // TODO: render fortuneText onto the branded PNG template (sharp/canvas),
-  // add the "Zeroth Wonder" watermark at the bottom, then upload and get a URL.
-  const assetUrl = `https://placeholder.zerothwonder.app/fortunes/${genJob._id}.png`; // replace once storage is wired
+  const png = await renderFortunePNG(fortuneText);
+  const assetUrl = await uploadBufferToCloudinary(png, "zeroth-wonder/fortunes", "image");
+
   return { assetUrl, provider };
 }

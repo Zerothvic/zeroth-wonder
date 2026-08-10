@@ -12,7 +12,7 @@ import { runDocumentaryJob } from "./documentaryWorker.js";
 // Bind the port FIRST, before any await — Render's port scanner needs to see this immediately, independent of how long Mongo/Redis take to connect.
 const healthApp = express();
 healthApp.get("/health", (req, res) => res.json({ ok: true, worker: "running" }));
-const PORT = process.env.PORT || 10000;
+const PORT = process.env.WORKER_PORT || 10001;
 healthApp.listen(PORT, () => console.log(`[worker] health endpoint on :${PORT}`));
 
 await mongoose.connect(process.env.MONGO_URI);

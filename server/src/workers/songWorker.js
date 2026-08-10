@@ -1,9 +1,24 @@
-// Bottleneck 12.3/11: no free, unlimited, sung-vocal music API exists.
-// MVP approach: free instrumental model + free TTS spoken/rap-style vocal,
-// mixed with ffmpeg. Swap in a paid provider later if budget allows.
+import { generateText, generateSpeech, generateInstrumental } from "../services/aiGateway.js";
+import { composeSongMp3 } from "../services/audioCompose.js";
+import { uploadBufferToCloudinary } from "../services/storage.js";
+
 export async function runSongJob(genJob) {
-  throw new Error(
-    "TODO: implement once a free instrumental provider (e.g. Hugging Face MusicGen) " +
-    "and a free TTS provider are chosen — see aiGateway.generateSpeech()"
+  const { provider, result: lyrics } = await generateText(
+    `Write short, rhythmic, rap-style spoken lyrics (about 15-20 seconds when read aloud) about: "${genJob.prompt}". Fun, punchy, no singing notation.`
   );
+
+  const { result: introBuffer } = await generateSpeech("Zeroth Wonder presents...");
+  const { result: vocalBuffer } = await generateSpeech(lyrics);
+
+  let instrumentalBuffer = null;
+  try {
+    instrumentalBuffer = await generateInstrumental(`Upbeat instrumental backing track, no vocals, theme: ${genJob.prompt}`);
+  } catch (err) {
+    console.warn("[songWorker] instrumental generation failed, shipping vocal-only:", err.message);
+  }
+
+  const mp3 = await composeSongMp3({ introBuffer, vocalBuffer, instrumentalBuffer });
+  const assetUrl = await uploadBufferToCloudinary(mp3, "zeroth-wonder/songs", "video"); // Cloudinary treats audio under "video" resource type
+
+  return { assetUrl, provider };
 }

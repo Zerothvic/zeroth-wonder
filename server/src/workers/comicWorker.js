@@ -1,6 +1,6 @@
 import { generateText, generateImage } from "../services/aiGateway.js";
-// import { composePagesToPDF } from "../services/pdfCompose.js"; // implement with pdf-lib
-// import { uploadToStorage } from "../services/storage.js";
+import { composePagesToPDF } from "../services/pdfCompose.js";
+import { uploadBufferToCloudinary } from "../services/storage.js";
 
 export async function runComicJob(genJob) {
   const { provider, result: scriptRaw } = await generateText(
@@ -16,8 +16,8 @@ export async function runComicJob(genJob) {
     pageImages.push(imageBuffer);
   }
 
-  // TODO: composite pageImages into a 5-page PDF with pdf-lib, stamping the
-  // "Zeroth Wonder" watermark on each page footer, then upload.
-  const assetUrl = `https://placeholder.zerothwonder.app/comics/${genJob._id}.pdf`;
+  const pdf = await composePagesToPDF(pageImages, { watermark: "Zeroth Wonder" });
+  const assetUrl = await uploadBufferToCloudinary(pdf, "zeroth-wonder/comics", "auto");
+
   return { assetUrl, provider };
 }
