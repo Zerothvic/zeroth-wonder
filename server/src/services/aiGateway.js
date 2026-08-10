@@ -3,14 +3,12 @@
  * Every provider call in the app goes through here, never directly from a
  * worker/controller. When a free-tier is throttled or a provider is swapped,
  * you change ONE file, not every worker.
- *
- * MVP note: fill in the fetch calls with whichever free-tier providers you've
- * signed up for (see PRD Section 11). Each capability lists a primary + a
- * fallback so a single exhausted quota doesn't take down that product type.
  */
 
+import { InferenceClient } from "@huggingface/inference";
+
 const TEXT_PROVIDERS = ["gemini", "groq"];
-const IMAGE_PROVIDERS = ["gemini-image", "huggingface-flux"];
+const IMAGE_PROVIDERS = ["huggingface-flux", "gemini-image"];
 
 async function callWithFallback(providers, fn) {
   let lastErr;
@@ -29,7 +27,7 @@ export async function generateText(prompt, { system } = {}) {
   return callWithFallback(TEXT_PROVIDERS, async (provider) => {
     if (provider === "gemini") {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -67,13 +65,26 @@ export async function generateText(prompt, { system } = {}) {
 
 export async function generateImage(prompt) {
   return callWithFallback(IMAGE_PROVIDERS, async (provider) => {
+    if (provider === "huggingface-flux") {
+      const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
+      const image = await client.textToImage({
+        provider: "auto",
+        model: "black-forest-labs/FLUX.1-schnell",
+        inputs: prompt,
+      });
+      const arrayBuffer = await image.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    }
     if (provider === "gemini-image") {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { responseModalities: ["IMAGE"] },
+          }),
         }
       );
       if (!res.ok) throw new Error(`Gemini image ${res.status}`);
@@ -81,21 +92,6 @@ export async function generateImage(prompt) {
       const b64 = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData)?.inlineData?.data;
       if (!b64) throw new Error("No image returned");
       return Buffer.from(b64, "base64");
-    }
-    if (provider === "huggingface-flux") {
-      const res = await fetch(
-        "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ inputs: prompt }),
-        }
-      );
-      if (!res.ok) throw new Error(`HF image ${res.status}`);
-      return Buffer.from(await res.arrayBuffer());
     }
     throw new Error(`Unknown image provider: ${provider}`);
   });
