@@ -3,7 +3,8 @@ import { api } from "../api/client.js";
 
 export default function Profile() {
   const [data, setData] = useState(null);
-  const [removingId, setRemovingId] = useState(null);
+  const [removingCartId, setRemovingCartId] = useState(null);
+  const [deletingJobId, setDeletingJobId] = useState(null);
 
   const load = () => api.get("/profile").then(({ data }) => setData(data));
   useEffect(() => { load(); }, []);
@@ -11,14 +12,27 @@ export default function Profile() {
   if (!data) return <p>Loading…</p>;
 
   const removeFromCart = async (productId) => {
-    setRemovingId(productId);
+    setRemovingCartId(productId);
     try {
       await api.delete(`/cart/${productId}`);
       await load();
     } catch (err) {
       alert(err.response?.data?.error || "Couldn't remove item");
     } finally {
-      setRemovingId(null);
+      setRemovingCartId(null);
+    }
+  };
+
+  const deletePurchase = async (jobId, title) => {
+    if (!window.confirm(`Delete "${title}"? This can't be undone.`)) return;
+    setDeletingJobId(jobId);
+    try {
+      await api.delete(`/profile/purchases/${jobId}`);
+      await load();
+    } catch (err) {
+      alert(err.response?.data?.error || "Couldn't delete item");
+    } finally {
+      setDeletingJobId(null);
     }
   };
 
@@ -42,10 +56,10 @@ export default function Profile() {
                 <span className="font-semibold">{item.productId.coinPrice} coins</span>
                 <button
                   onClick={() => removeFromCart(item.productId._id)}
-                  disabled={removingId === item.productId._id}
+                  disabled={removingCartId === item.productId._id}
                   className="text-sm text-orange font-semibold hover:underline disabled:opacity-50"
                 >
-                  {removingId === item.productId._id ? "Removing…" : "Remove"}
+                  {removingCartId === item.productId._id ? "Removing…" : "Remove"}
                 </button>
               </div>
             </div>
@@ -63,12 +77,19 @@ export default function Profile() {
         <h2 className="text-xl font-bold mb-3">Purchases</h2>
         <div className="grid gap-3">
           {data.purchases.map((job) => (
-            <div key={job._id} className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center">
-              <span>{job.productId?.title}</span>
-              <span className="text-sm capitalize">{job.status}</span>
+            <div key={job._id} className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center gap-3">
+              <span className="flex-1">{job.productId?.title}</span>
+              <span className="text-sm capitalize text-ink/60">{job.status}</span>
               {job.status === "ready" && (
                 <a href={job.resultAssetUrl} className="text-blue font-semibold text-sm">Download</a>
               )}
+              <button
+                onClick={() => deletePurchase(job._id, job.productId?.title || "this item")}
+                disabled={deletingJobId === job._id}
+                className="text-sm text-orange font-semibold hover:underline disabled:opacity-50"
+              >
+                {deletingJobId === job._id ? "Deleting…" : "Delete"}
+              </button>
             </div>
           ))}
           {data.purchases.length === 0 && <p className="text-ink/50 text-sm">No purchases yet.</p>}

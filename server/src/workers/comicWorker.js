@@ -17,7 +17,7 @@ export async function runComicJob(genJob) {
   }
 
   const pdf = await composePagesToPDF(pageImages, { watermark: "Zeroth Wonder" });
-  const assetUrl = await uploadBufferToCloudinary(pdf, "zeroth-wonder/comics", "auto");
+  const { url, publicId, resourceType } = await uploadBufferToCloudinary(pdf, "zeroth-wonder/comics", "auto");
 
-  return { assetUrl, provider };
+  return { assetUrl: url, publicId, resourceType, provider };
 }

@@ -8,6 +8,7 @@ import { runFortuneJob } from "./fortuneWorker.js";
 import { runComicJob } from "./comicWorker.js";
 import { runSongJob } from "./songWorker.js";
 import { runDocumentaryJob } from "./documentaryWorker.js";
+import { runConversationJob } from "./conversationWorker.js";
 
 // Bind the port FIRST, before any await — Render's port scanner needs to see this immediately, independent of how long Mongo/Redis take to connect.
 const healthApp = express();
@@ -23,6 +24,7 @@ const HANDLERS = {
   comic: runComicJob,
   song: runSongJob,
   documentary: runDocumentaryJob,
+  conversation: runConversationJob,
 };
 
 new Worker(
@@ -45,9 +47,11 @@ new Worker(
     if (!handler) throw new Error(`No worker for product type: ${genJob.productType}`);
 
     try {
-      const { assetUrl, provider } = await handler(genJob);
+      const { assetUrl, publicId, resourceType, provider } = await handler(genJob);
       genJob.status = "ready";
       genJob.resultAssetUrl = assetUrl;
+      genJob.resultPublicId = publicId;
+      genJob.resultResourceType = resourceType;
       genJob.provider = provider;
       genJob.completedAt = new Date();
       await genJob.save();

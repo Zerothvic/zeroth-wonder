@@ -8,8 +8,8 @@ export async function runFortuneJob(genJob) {
     { system: "You are a chaotic carnival fortune teller. Never mention real people." }
   );
 
-  const png = await renderFortunePNG(fortuneText);
-  const assetUrl = await uploadBufferToCloudinary(png, "zeroth-wonder/fortunes", "image");
+  const png = await renderFortunePNG(genJob.prompt, fortuneText);
+  const { url, publicId, resourceType } = await uploadBufferToCloudinary(png, "zeroth-wonder/fortunes", "image");
 
-  return { assetUrl, provider };
+  return { assetUrl: url, publicId, resourceType, provider };
 }

@@ -43,10 +43,10 @@ router.post("/products/:id/thumbnail", upload.single("image"), async (req, res) 
   try {
     if (!req.file) return res.status(400).json({ error: "No image file provided" });
 
-    const imageUrl = await uploadBufferToCloudinary(req.file.buffer, "zeroth-wonder/products");
+    const { url } = await uploadBufferToCloudinary(req.file.buffer, "zeroth-wonder/products");
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { sampleAssetUrl: imageUrl },
+      { sampleAssetUrl: url },
       { new: true }
     );
     res.json(product);

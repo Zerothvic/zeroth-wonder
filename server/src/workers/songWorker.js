@@ -18,7 +18,7 @@ export async function runSongJob(genJob) {
   }
 
   const mp3 = await composeSongMp3({ introBuffer, vocalBuffer, instrumentalBuffer });
-  const assetUrl = await uploadBufferToCloudinary(mp3, "zeroth-wonder/songs", "video"); // Cloudinary treats audio under "video" resource type
+  const { url, publicId, resourceType } = await uploadBufferToCloudinary(mp3, "zeroth-wonder/songs", "video");
 
-  return { assetUrl, provider };
+  return { assetUrl: url, publicId, resourceType, provider };
 }

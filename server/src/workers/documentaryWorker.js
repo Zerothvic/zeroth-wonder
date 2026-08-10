@@ -16,12 +16,8 @@ export async function runDocumentaryJob(genJob) {
 
   const { result: narrationBuffer } = await generateSpeech(scenes.join(". "));
 
-  const videoBuffer = await composeVideoFfmpeg({
-    sceneImages,
-    captions: scenes,
-    narrationBuffer,
-  });
+  const videoBuffer = await composeVideoFfmpeg({ sceneImages, captions: scenes, narrationBuffer });
+  const { url, publicId, resourceType } = await uploadBufferToCloudinary(videoBuffer, "zeroth-wonder/documentaries", "video");
 
-  const assetUrl = await uploadBufferToCloudinary(videoBuffer, "zeroth-wonder/documentaries", "video");
-  return { assetUrl, provider };
+  return { assetUrl: url, publicId, resourceType, provider };
 }

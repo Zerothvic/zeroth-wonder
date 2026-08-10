@@ -11,6 +11,8 @@ const generationJobSchema = new mongoose.Schema(
     provider: { type: String },
     attempts: { type: Number, default: 0 },
     resultAssetUrl: { type: String },
+    resultPublicId: { type: String },   // Cloudinary's identifier, needed to delete the file later
+    resultResourceType: { type: String }, // "image" | "video" | "raw" — Cloudinary needs this to delete correctly
     failureReason: { type: String },
     completedAt: { type: Date },
   },
