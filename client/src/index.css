@@ -75,3 +75,29 @@ h1, h2, h3 {
   50%  { transform: translate(-16px, 12px) scale(0.7); opacity: 1; }
   100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
 }
+
+.wonder-focus-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .wonder-focus-row {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .wonder-focus-row > .wonder-panel {
+    flex: 1;
+    transition: flex 0.5s ease, opacity 0.4s ease, transform 0.4s ease;
+  }
+  .wonder-focus-row:hover > .wonder-panel {
+    opacity: 0.55;
+    transform: scale(0.98);
+  }
+  .wonder-focus-row > .wonder-panel:hover {
+    flex: 2.2;
+    opacity: 1;
+    transform: scale(1);
+  }
+}

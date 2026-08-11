@@ -13,6 +13,7 @@ const productSchema = new mongoose.Schema(
     coinPrice: { type: Number, required: true },
     sampleAssetUrl: { type: String },
     isActive: { type: Boolean, default: true },
+    promptQuestions: { type: [String], default: [] }, // exactly 5 per product, drives the checkout wizard
   },
   { timestamps: true }
 );
