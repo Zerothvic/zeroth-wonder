@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
-    "worker": "node src/workers/index.js",
+    "worker": "cross-env PORT=10001 node src/workers/index.js",
     "seed": "node src/seed/seedProducts.js",
     "make-admin": "node src/seed/makeAdmin.js",
     "verify-user": "node src/seed/verifyUser.js",
@@ -36,6 +36,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "nodemon": "^3.1.0"
   }
 }
