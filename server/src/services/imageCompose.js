@@ -28,27 +28,50 @@ function escapeXml(str) {
 
 /**
  * Generic branded card renderer, reused by Fortune and Conversation.
- * Includes the user's original prompt as a small caption near the top,
- * so the shareable image gives context on what it was generated from.
+ * Height is calculated from actual content length so nothing gets cropped
+ * or overlaps the watermark — short answers get a compact card, long ones
+ * get a taller one. Text uses a wide, centered column instead of leaving
+ * the sides empty.
  */
 async function renderTextCardPNG({
   title,
-  prompt,
+  promptSummary,
   bodyText,
   gradientFrom = "#EDC45A",
   gradientTo = "#ED802A",
 }) {
   const width = 1080;
-  const height = 1350;
+  const sideMargin = 90;
+  const usableWidth = width - sideMargin * 2; // 900px — actually used now, not left empty
 
-  const promptLines = wrapText(`"${prompt}"`, 55);
-  const bodyLines = wrapText(bodyText, 40);
+  const promptFontSize = 28;
+  const promptLineHeight = 38;
+  const promptCharsPerLine = Math.floor(usableWidth / (promptFontSize * 0.52)); // ~62
 
-  const titleY = 130;
-  const promptStartY = 200;
-  const promptLineHeight = 34;
-  const bodyStartY = promptStartY + promptLines.length * promptLineHeight + 70;
-  const bodyLineHeight = 48;
+  const bodyFontSize = 34;
+  const bodyLineHeight = 50;
+  const bodyCharsPerLine = Math.floor(usableWidth / (bodyFontSize * 0.55)); // ~48
+
+  const hasPrompt = !!promptSummary?.trim();
+  const promptLines = hasPrompt ? wrapText(`"${promptSummary.trim()}"`, promptCharsPerLine) : [];
+  const bodyLines = wrapText(bodyText.trim(), bodyCharsPerLine);
+
+  const titleY = 110;
+  const promptStartY = titleY + 90;
+  const promptBlockHeight = promptLines.length * promptLineHeight;
+  const gapAfterPrompt = hasPrompt ? 60 : 0;
+
+  const bodyStartY = hasPrompt
+    ? promptStartY + promptBlockHeight + gapAfterPrompt
+    : titleY + 100;
+  const bodyBlockHeight = bodyLines.length * bodyLineHeight;
+  const bodyEndY = bodyStartY + bodyBlockHeight;
+
+  const footerGap = 90; // guaranteed clearance between last line of body text and the watermark
+  const footerY = bodyEndY + footerGap;
+  const bottomPadding = 60;
+
+  const height = Math.min(2600, Math.max(1000, footerY + bottomPadding));
 
   const promptTspans = promptLines
     .map((line, i) => `<tspan x="${width / 2}" y="${promptStartY + i * promptLineHeight}">${escapeXml(line)}</tspan>`)
@@ -73,15 +96,16 @@ async function renderTextCardPNG({
         ${escapeXml(title)}
       </text>
 
-      <text font-family="Arial, sans-serif" font-size="26" font-style="italic" fill="#2B2118" opacity="0.75" text-anchor="middle">
+      ${hasPrompt ? `
+      <text font-family="Arial, sans-serif" font-size="${promptFontSize}" font-style="italic" fill="#2B2118" opacity="0.75" text-anchor="middle">
         ${promptTspans}
-      </text>
+      </text>` : ""}
 
-      <text font-family="Georgia, serif" font-size="32" font-weight="bold" fill="#2B2118" text-anchor="middle">
+      <text font-family="Georgia, serif" font-size="${bodyFontSize}" font-weight="bold" fill="#2B2118" text-anchor="middle">
         ${bodyTspans}
       </text>
 
-      <text x="${width / 2}" y="${height - 50}" font-family="Arial, sans-serif" font-size="24"
+      <text x="${width / 2}" y="${height - 40}" font-family="Arial, sans-serif" font-size="24"
             fill="#F2E2CF" text-anchor="middle" opacity="0.85">
         Zeroth Wonder
       </text>
@@ -91,20 +115,20 @@ async function renderTextCardPNG({
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-export async function renderFortunePNG(prompt, fortuneText) {
+export async function renderFortunePNG(promptSummary, fortuneText) {
   return renderTextCardPNG({
     title: "Your Fortune",
-    prompt,
+    promptSummary,
     bodyText: fortuneText,
     gradientFrom: "#EDC45A",
     gradientTo: "#ED802A",
   });
 }
 
-export async function renderConversationPNG(prompt, excerptText) {
+export async function renderConversationPNG(promptSummary, excerptText) {
   return renderTextCardPNG({
     title: "A Conversation",
-    prompt,
+    promptSummary,
     bodyText: excerptText,
     gradientFrom: "#65BCB5",
     gradientTo: "#2B2118",

@@ -24,7 +24,7 @@ router.post("/", checkoutLimiter, requireAuth, async (req, res) => {
 
     const createdJobs = await withTransaction(async (session) => {
       const jobs = [];
-      for (const { productId, prompt } of items) {
+      for (const { productId, prompt, promptSummary } of items) {
         const cartItem = await CartItem.findOne({ userId: req.user._id, productId }).populate("productId").session(session);
         if (!cartItem) throw new Error(`Item not in cart: ${productId}`);
 
@@ -42,7 +42,14 @@ router.post("/", checkoutLimiter, requireAuth, async (req, res) => {
         });
 
         const [job] = await GenerationJob.create(
-          [{ userId: req.user._id, productId, productType: cartItem.productId.type, prompt, moderationStatus: check.needsReview ? "pending" : "approved" }],
+          [{
+            userId: req.user._id,
+            productId,
+            productType: cartItem.productId.type,
+            prompt,
+            promptSummary,
+            moderationStatus: check.needsReview ? "pending" : "approved",
+          }],
           { session }
         );
         jobs.push(job);

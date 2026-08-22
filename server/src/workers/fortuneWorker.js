@@ -8,7 +8,7 @@ export async function runFortuneJob(genJob) {
     { system: "You are a chaotic carnival fortune teller. Never mention real people." }
   );
 
-  const png = await renderFortunePNG(genJob.prompt, fortuneText);
+  const png = await renderFortunePNG(genJob.promptSummary || genJob.prompt, fortuneText);
   const { url, publicId, resourceType } = await uploadBufferToCloudinary(png, "zeroth-wonder/fortunes", "image");
 
   return { assetUrl: url, publicId, resourceType, provider };

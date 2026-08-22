@@ -2,17 +2,20 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client.js";
 
-// Combines question+answer pairs into one flowing prompt string —
-// this becomes exactly what today's free-text prompt used to be,
-// so nothing downstream (checkout route, queue, workers) needs to change.
-function compilePrompt(questions, answers) {
+// Full Q&A — sent to the AI, which needs the question context to generate well.
+function compileFullPrompt(questions, answers) {
   return questions.map((q, i) => `${q} ${answers[i]?.trim()}`).join(" ");
+}
+
+// Answers only, no question text — this is what gets shown on the shareable image.
+function compileAnswersOnly(answers) {
+  return answers.map((a) => a?.trim()).filter(Boolean).join(" • ");
 }
 
 function QuestionWizard({ product, onComplete }) {
   const questions = product.promptQuestions?.length === 5
     ? product.promptQuestions
-    : ["Tell us what you'd like generated.", "", "", "", ""].slice(0, 1); // graceful fallback if a product has no questions set
+    : ["Tell us what you'd like generated.", "", "", "", ""].slice(0, 1);
 
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState(Array(questions.length).fill(""));
@@ -24,9 +27,10 @@ function QuestionWizard({ product, onComplete }) {
   const next = () => {
     if (!canAdvance) return;
     if (step === questions.length - 1) {
-      const compiled = compilePrompt(questions, answers);
+      const fullPrompt = compileFullPrompt(questions, answers);
+      const promptSummary = compileAnswersOnly(answers);
       setDone(true);
-      onComplete(compiled);
+      onComplete(fullPrompt, promptSummary);
     } else {
       setStep((s) => s + 1);
     }
@@ -97,20 +101,20 @@ function QuestionWizard({ product, onComplete }) {
 
 export default function Checkout() {
   const [cart, setCart] = useState([]);
-  const [prompts, setPrompts] = useState({});
+  const [answers, setAnswers] = useState({}); // { [productId]: { prompt, promptSummary } }
   const navigate = useNavigate();
 
   const loadCart = () => api.get("/cart").then(({ data }) => setCart(data));
   useEffect(() => { loadCart(); }, []);
 
   const total = cart.reduce((sum, i) => sum + i.productId.coinPrice, 0);
-  const allReady = cart.length > 0 && cart.every((item) => !!prompts[item.productId._id]);
+  const allReady = cart.length > 0 && cart.every((item) => !!answers[item.productId._id]);
 
   const removeItem = async (productId) => {
     try {
       await api.delete(`/cart/${productId}`);
       await loadCart();
-      setPrompts((p) => {
+      setAnswers((p) => {
         const next = { ...p };
         delete next[productId];
         return next;
@@ -121,7 +125,11 @@ export default function Checkout() {
   };
 
   const submit = async () => {
-    const items = cart.map((i) => ({ productId: i.productId._id, prompt: prompts[i.productId._id] || "" }));
+    const items = cart.map((i) => ({
+      productId: i.productId._id,
+      prompt: answers[i.productId._id]?.prompt || "",
+      promptSummary: answers[i.productId._id]?.promptSummary || "",
+    }));
     try {
       await api.post("/checkout", { items });
       navigate("/profile");
@@ -153,8 +161,8 @@ export default function Checkout() {
           </div>
           <QuestionWizard
             product={item.productId}
-            onComplete={(compiled) =>
-              setPrompts((p) => ({ ...p, [item.productId._id]: compiled }))
+            onComplete={(prompt, promptSummary) =>
+              setAnswers((p) => ({ ...p, [item.productId._id]: { prompt, promptSummary } }))
             }
           />
         </div>

@@ -19,6 +19,7 @@ router.get("/", requireAuth, async (req, res) => {
       displayName: req.user.displayName,
       coinBalance: req.user.coinBalance,
       isAdmin: req.user.isAdmin,
+      lastEngagementResetAt: req.user.lastEngagementResetAt,
     },
     cart,
     purchases,

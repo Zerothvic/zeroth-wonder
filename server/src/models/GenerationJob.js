@@ -6,13 +6,14 @@ const generationJobSchema = new mongoose.Schema(
     productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
     productType: { type: String, required: true },
     prompt: { type: String, required: true },
+    promptSummary: { type: String }, // clean, question-free version for display on generated images
     status: { type: String, enum: ["queued", "processing", "ready", "failed"], default: "queued" },
     moderationStatus: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
     provider: { type: String },
     attempts: { type: Number, default: 0 },
     resultAssetUrl: { type: String },
-    resultPublicId: { type: String },   // Cloudinary's identifier, needed to delete the file later
-    resultResourceType: { type: String }, // "image" | "video" | "raw" — Cloudinary needs this to delete correctly
+    resultPublicId: { type: String },
+    resultResourceType: { type: String },
     failureReason: { type: String },
     completedAt: { type: Date },
   },

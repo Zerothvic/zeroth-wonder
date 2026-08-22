@@ -5,6 +5,7 @@ import Product from "../models/Product.js";
 import { applyCoinDelta } from "../services/coinEngine.js";
 import { optionalAuth, requireAuth } from "../middleware/auth.js";
 import { engagementLimiter } from "../middleware/rateLimit.js";
+import User from "../models/User.js";
 
 const router = Router();
 const COIN_VALUES = { like: 5, comment: 10, share: 15 };
@@ -91,6 +92,33 @@ router.post("/share/confirm", engagementLimiter, requireAuth, async (req, res) =
     res.status(201).json({ engagement });
   } catch (err) {
     if (err.code === 11000) return res.status(409).json({ error: "Already rewarded for this platform" });
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+router.post("/reset", requireAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    const now = Date.now();
+    const last = user.lastEngagementResetAt ? new Date(user.lastEngagementResetAt).getTime() : 0;
+    const elapsed = now - last;
+
+    if (elapsed < RESET_COOLDOWN_MS) {
+      const remainingMs = RESET_COOLDOWN_MS - elapsed;
+      return res.status(429).json({
+        error: "You can reset your engagements again soon.",
+        remainingMs,
+      });
+    }
+
+    await Engagement.deleteMany({ userId: user._id, type: { $ne: "signup" } });
+    user.lastEngagementResetAt = new Date(now);
+    await user.save();
+
+    res.json({ message: "Engagements reset. You can start earning coins again!", lastEngagementResetAt: user.lastEngagementResetAt });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

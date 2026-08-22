@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 
+const RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function formatRemaining(ms) {
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  const minutes = Math.floor((ms % (60 * 60 * 1000)) / (60 * 1000));
+  return `${hours}h ${minutes}m`;
+}
+
 export default function Profile() {
   const [data, setData] = useState(null);
   const [removingCartId, setRemovingCartId] = useState(null);
   const [deletingJobId, setDeletingJobId] = useState(null);
+  const [resetting, setResetting] = useState(false);
+  const [resetMessage, setResetMessage] = useState(null);
 
   const load = () => api.get("/profile").then(({ data }) => setData(data));
   useEffect(() => { load(); }, []);
@@ -36,6 +46,27 @@ export default function Profile() {
     }
   };
 
+  const resetEngagements = async () => {
+    setResetting(true);
+    setResetMessage(null);
+    try {
+      const { data: res } = await api.post("/engagements/reset");
+      setResetMessage(res.message);
+      await load();
+    } catch (err) {
+      const remaining = err.response?.data?.remainingMs;
+      setResetMessage(
+        remaining ? `Try again in ${formatRemaining(remaining)}.` : err.response?.data?.error || "Couldn't reset right now."
+      );
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const lastReset = data.user.lastEngagementResetAt ? new Date(data.user.lastEngagementResetAt).getTime() : 0;
+  const elapsed = Date.now() - lastReset;
+  const onCooldown = elapsed < RESET_COOLDOWN_MS;
+
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-2xl p-6 shadow-sm flex items-center justify-between">
@@ -45,6 +76,22 @@ export default function Profile() {
         </div>
         <div className="text-3xl font-bold text-orange">{data.user.coinBalance} coins</div>
       </div>
+
+      <section className="bg-white rounded-2xl p-6 shadow-sm">
+        <h2 className="text-lg font-bold mb-2">Out of things to like or comment on?</h2>
+        <p className="text-sm text-ink/60 mb-3">
+          Reset your engagements to re-like, re-comment, and re-share — and keep earning coins.
+          This doesn't affect coins you've already earned. Available once every 24 hours.
+        </p>
+        <button
+          onClick={resetEngagements}
+          disabled={resetting || onCooldown}
+          className="bg-blue px-5 py-2 rounded-full font-semibold text-sm disabled:opacity-40"
+        >
+          {resetting ? "Resetting…" : onCooldown ? `Available in ${formatRemaining(RESET_COOLDOWN_MS - elapsed)}` : "Reset engagements"}
+        </button>
+        {resetMessage && <p className="text-sm text-ink/70 mt-2">{resetMessage}</p>}
+      </section>
 
       <section>
         <h2 className="text-xl font-bold mb-3">Cart</h2>

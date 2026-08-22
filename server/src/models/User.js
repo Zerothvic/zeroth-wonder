@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     isAdmin: { type: Boolean, default: false },
     isSuspended: { type: Boolean, default: false },
     guestSessionId: { type: String },
+    lastEngagementResetAt: { type: Date }, // cooldown gate for the "reset engagements" action
   },
   { timestamps: true }
 );

@@ -8,7 +8,7 @@ export async function runConversationJob(genJob) {
     { system: "You write brief, emotionally resonant imagined dialogue. Never reference real, identifiable people." }
   );
 
-  const png = await renderConversationPNG(genJob.prompt, excerpt);
+  const png = await renderConversationPNG(genJob.promptSummary || genJob.prompt, excerpt);
   const { url, publicId, resourceType } = await uploadBufferToCloudinary(png, "zeroth-wonder/conversations", "image");
 
   return { assetUrl: url, publicId, resourceType, provider };

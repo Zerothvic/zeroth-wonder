@@ -27,7 +27,8 @@ const HANDLERS = {
   conversation: runConversationJob,
 };
 
-new Worker(
+
+const workerInstance = new Worker(
   "generation",
   async (job) => {
     const genJob = await GenerationJob.findById(job.data.jobId);
@@ -64,3 +65,9 @@ new Worker(
   },
   { connection: redisConnection, concurrency: 3 }
 );
+
+workerInstance.on("active", (job) => console.log(`[worker] picked up job ${job.id}`));
+workerInstance.on("completed", (job) => console.log(`[worker] completed job ${job.id}`));
+workerInstance.on("failed", (job, err) => console.error(`[worker] job ${job?.id} failed:`, err.message));
+workerInstance.on("error", (err) => console.error("[worker] BullMQ worker-level error:", err.message));
+redisConnection.on("error", (err) => console.error("[worker] Redis connection error:", err.message));
