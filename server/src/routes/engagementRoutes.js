@@ -111,7 +111,7 @@ router.post("/share/confirm", engagementLimiter, requireAuth, async (req, res) =
   }
 });
 
-const RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+const RESET_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 router.post("/reset", requireAuth, async (req, res) => {
   try {
@@ -154,10 +154,48 @@ router.get("/comments/:productId", async (req, res) => {
       comments.map((c) => ({
         id: c._id,
         text: c.text,
+        userId: c.userId?._id || null,
         displayName: c.userId?.displayName || "Someone",
         createdAt: c.createdAt,
       }))
     );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/engagements/comments/:id — edit your own comment text
+router.put("/comments/:id", requireAuth, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || text.trim().length < 8) {
+      return res.status(400).json({ error: "Comment must be at least 8 characters" });
+    }
+    const comment = await Engagement.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id, type: "comment" },
+      { text: text.trim() },
+      { new: true }
+    );
+    if (!comment) return res.status(404).json({ error: "Comment not found" });
+    res.json({ comment });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/engagements/comments/:id — remove your own comment.
+// Coins already earned from a first comment are NOT clawed back — deleting
+// just removes the comment's visibility, consistent with how deleting a
+// purchase doesn't refund coins either.
+router.delete("/comments/:id", requireAuth, async (req, res) => {
+  try {
+    const comment = await Engagement.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id,
+      type: "comment",
+    });
+    if (!comment) return res.status(404).json({ error: "Comment not found" });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
