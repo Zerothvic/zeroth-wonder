@@ -81,7 +81,7 @@ export default function Profile() {
         <h2 className="text-lg font-bold mb-2">Out of things to like or comment on?</h2>
         <p className="text-sm text-ink/60 mb-3">
           Reset your engagements to re-like, re-comment, and re-share — and keep earning coins.
-          This doesn't affect coins you've already earned. Available once every 24 hours.
+          This doesn't affect coins you've already earned. Available once every 3 hours.
         </p>
         <button
           onClick={resetEngagements}
