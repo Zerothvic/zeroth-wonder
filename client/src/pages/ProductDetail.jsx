@@ -24,6 +24,10 @@ export default function ProductDetail() {
   const [comment, setComment] = useState("");
   const [comments, setComments] = useState([]);
   const [postingComment, setPostingComment] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const [savingEditId, setSavingEditId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const load = () => api.get(`/products/${id}`).then(({ data }) => setProduct(data));
   const loadComments = () => api.get(`/engagements/comments/${id}`).then(({ data }) => setComments(data));
@@ -49,10 +53,45 @@ export default function ProductDetail() {
     }
   };
 
+  const startEdit = (c) => {
+    setEditingId(c.id);
+    setEditText(c.text);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const saveEdit = async (commentId) => {
+    if (editText.trim().length < 8) return;
+    setSavingEditId(commentId);
+    try {
+      await api.put(`/engagements/comments/${commentId}`, { text: editText });
+      setEditingId(null);
+      setEditText("");
+      await loadComments();
+    } catch (err) {
+      alert(err.response?.data?.error || "Couldn't update comment");
+    } finally {
+      setSavingEditId(null);
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    if (!window.confirm("Delete this comment?")) return;
+    setDeletingId(commentId);
+    try {
+      await api.delete(`/engagements/comments/${commentId}`);
+      await loadComments();
+    } catch (err) {
+      alert(err.response?.data?.error || "Couldn't delete comment");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const share = (platform) => {
-    // Share the server-rendered /share/product/:id URL, not the raw React
-    // app URL — only the server route has real Open Graph tags for social
-    // crawlers to read, so this is what makes thumbnails show up correctly.
     const shareUrl = `${import.meta.env.VITE_API_URL?.replace(/\/api$/, "") || ""}/share/product/${product._id}`;
     const shareUrls = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
@@ -110,7 +149,13 @@ export default function ProductDetail() {
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Leave a comment (min 8 characters) to earn coins…"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submitComment();
+              }
+            }}
+            placeholder="Leave a comment (min 8 characters) to earn coins… (Enter to post, Shift+Enter for a new line)"
             className="w-full border border-blue rounded-lg p-3 text-sm"
           />
           <button
@@ -128,15 +173,68 @@ export default function ProductDetail() {
           Comments {comments.length > 0 && <span className="text-ink/40">({comments.length})</span>}
         </h2>
         {comments.length === 0 && <p className="text-sm text-ink/50">No comments yet — be the first.</p>}
-        {comments.map((c) => (
-          <div key={c.id} className="bg-cream/40 rounded-lg p-3 text-sm">
-            <div className="flex justify-between items-baseline mb-1">
-              <span className="font-semibold text-ink">{c.displayName}</span>
-              <span className="text-xs text-ink/40">{timeAgo(c.createdAt)}</span>
+        {comments.map((c) => {
+          const isMine = user && c.userId === user.id;
+          const isEditing = editingId === c.id;
+          return (
+            <div key={c.id} className="bg-cream/40 rounded-lg p-3 text-sm">
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="font-semibold text-ink">{c.displayName}</span>
+                <span className="text-xs text-ink/40">{timeAgo(c.createdAt)}</span>
+              </div>
+
+              {isEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        saveEdit(c.id);
+                      }
+                    }}
+                    className="w-full border border-blue rounded-lg p-2 text-sm"
+                    rows={2}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => saveEdit(c.id)}
+                      disabled={savingEditId === c.id || editText.trim().length < 8}
+                      className="bg-orange text-cream px-3 py-1 rounded-full text-xs font-semibold disabled:opacity-50"
+                    >
+                      {savingEditId === c.id ? "Saving…" : "Save"}
+                    </button>
+                    <button onClick={cancelEdit} className="text-ink/50 text-xs font-semibold">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="text-ink/80">{c.text}</p>
+                  {isMine && (
+                    <div className="flex gap-3 mt-1.5">
+                      <button
+                        onClick={() => startEdit(c)}
+                        className="text-xs text-blue font-semibold hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteComment(c.id)}
+                        disabled={deletingId === c.id}
+                        className="text-xs text-orange font-semibold hover:underline disabled:opacity-50"
+                      >
+                        {deletingId === c.id ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <p className="text-ink/80">{c.text}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <button

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 
-const RESET_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const RESET_COOLDOWN_MS = 3 * 60 * 60 * 1000;
 
 function formatRemaining(ms) {
   const hours = Math.floor(ms / (60 * 60 * 1000));
