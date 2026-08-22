@@ -2,3 +2,8 @@ node_modules
 .env
 dist
 *.log
+
+# Local diagnostic/test scripts — kept for debugging, never committed
+test-*.js
+check-*.js
+list-*.js

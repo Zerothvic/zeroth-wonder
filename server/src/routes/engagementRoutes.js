@@ -59,13 +59,28 @@ router.post("/comment", engagementLimiter, requireAuth, async (req, res) => {
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ error: "Product not found" });
 
-    const engagement = await Engagement.create({
-      userId: req.user._id, productId, type: "comment", coinsAwarded: COIN_VALUES.comment,
-    });
-    await applyCoinDelta({ userId: req.user._id, delta: COIN_VALUES.comment, reason: "engagement:comment", refId: engagement._id });
-    res.status(201).json({ engagement });
+    // First comment on this product earns coins (unique index below enforces
+    // one rewarded comment per user per product); further comments still
+    // save and display, just without a second coin payout.
+    let coinsAwarded = 0;
+    let engagement;
+    try {
+      engagement = await Engagement.create({
+        userId: req.user._id, productId, type: "comment", text: text.trim(), coinsAwarded: COIN_VALUES.comment,
+      });
+      coinsAwarded = COIN_VALUES.comment;
+      await applyCoinDelta({ userId: req.user._id, delta: COIN_VALUES.comment, reason: "engagement:comment", refId: engagement._id });
+    } catch (err) {
+      if (err.code !== 11000) throw err;
+      // Reward already claimed on this product — still save the comment itself,
+      // just as a non-unique, non-rewarded entry so it shows up in the list.
+      engagement = await Engagement.create({
+        userId: req.user._id, productId, type: "comment", text: text.trim(), coinsAwarded: 0,
+      });
+    }
+
+    res.status(201).json({ engagement, coinsAwarded });
   } catch (err) {
-    if (err.code === 11000) return res.status(200).json({ message: "Reward already claimed for this product; comment still recorded elsewhere." });
     res.status(500).json({ error: err.message });
   }
 });
@@ -118,6 +133,31 @@ router.post("/reset", requireAuth, async (req, res) => {
     await user.save();
 
     res.json({ message: "Engagements reset. You can start earning coins again!", lastEngagementResetAt: user.lastEngagementResetAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/engagements/comments/:productId — public list of comments on a product
+router.get("/comments/:productId", async (req, res) => {
+  try {
+    const comments = await Engagement.find({
+      productId: req.params.productId,
+      type: "comment",
+      text: { $exists: true, $ne: "" },
+    })
+      .populate("userId", "displayName username")
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json(
+      comments.map((c) => ({
+        id: c._id,
+        text: c.text,
+        displayName: c.userId?.displayName || "Someone",
+        createdAt: c.createdAt,
+      }))
+    );
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

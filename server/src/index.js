@@ -12,6 +12,7 @@ import checkoutRoutes from "./routes/checkoutRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import profileRoutes from "./routes/profileRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import shareRoutes from "./routes/shareRoutes.js";
 
 await connectDB();
 
@@ -19,6 +20,7 @@ const app = express();
 app.use(cors({ origin: process.env.CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use("/share", shareRoutes);
 
 app.get("/health", (req, res) => res.json({ ok: true }));
 
