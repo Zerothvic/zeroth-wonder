@@ -1,10 +1,8 @@
-
-
 import { InferenceClient } from "@huggingface/inference";
 
-const TEXT_PROVIDERS = ["gemini", "groq"];
 const IMAGE_PROVIDERS = ["huggingface-flux", "gemini-image"];
 const TTS_MODELS = ["hexgrad/Kokoro-82M", "ResembleAI/chatterbox"];
+const TEXT_FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
 
 async function callWithFallback(providers, fn) {
   let lastErr;
@@ -19,42 +17,51 @@ async function callWithFallback(providers, fn) {
   throw lastErr;
 }
 
+async function generateTextGemini(prompt, system) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: system ? `${system}\n\n${prompt}` : prompt }] }],
+      }),
+    }
+  );
+  if (!res.ok) throw new Error(`Gemini text ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+
+  const candidate = data.candidates?.[0];
+  // A 200 response doesn't guarantee usable text — Gemini can return an
+  // empty/blocked candidate (e.g. safety filtering) without a non-2xx status.
+  // Surface that as a real failure so the Hugging Face fallback actually fires.
+  if (candidate?.finishReason && candidate.finishReason !== "STOP") {
+    throw new Error(`Gemini text blocked: finishReason=${candidate.finishReason}`);
+  }
+  const text = candidate?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini text: empty response");
+  return text;
+}
+
+async function generateTextHuggingFace(prompt, system) {
+  const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
+  const completion = await client.chatCompletion({
+    provider: "auto",
+    model: TEXT_FALLBACK_MODEL,
+    messages: [
+      ...(system ? [{ role: "system", content: system }] : []),
+      { role: "user", content: prompt },
+    ],
+  });
+  const text = completion.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Hugging Face text: empty response");
+  return text;
+}
+
 export async function generateText(prompt, { system } = {}) {
-  return callWithFallback(TEXT_PROVIDERS, async (provider) => {
-    if (provider === "gemini") {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: system ? `${system}\n\n${prompt}` : prompt }] }],
-          }),
-        }
-      );
-      if (!res.ok) throw new Error(`Gemini text ${res.status}`);
-      const data = await res.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    }
-    if (provider === "groq") {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-oss-120b",
-          messages: [
-            ...(system ? [{ role: "system", content: system }] : []),
-            { role: "user", content: prompt },
-          ],
-        }),
-      });
-      if (!res.ok) throw new Error(`Groq text ${res.status}`);
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content ?? "";
-    }
+  return callWithFallback(["gemini", "huggingface"], async (provider) => {
+    if (provider === "gemini") return generateTextGemini(prompt, system);
+    if (provider === "huggingface") return generateTextHuggingFace(prompt, system);
     throw new Error(`Unknown text provider: ${provider}`);
   });
 }
@@ -104,7 +111,6 @@ export async function generateInstrumental(prompt) {
   return Buffer.from(arrayBuffer);
 }
 
-// Stub — wire up a free TTS provider here (rotates often, see PRD 11).
 export async function generateSpeech(text) {
   const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
   let lastErr;
