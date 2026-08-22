@@ -122,20 +122,25 @@ export default function Home() {
 
       <section>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STEPS.map((step, i) => (
-            <div
-              key={step}
-              style={{ animation: `dice-roll-in 0.6s ease-out ${i * 120}ms both` }}
-              className="flex flex-col items-center gap-4"
-            >
-              <DiceCube front={i + 1} duration={8 + i} />
-              <div className="font-semibold text-center text-white text-sm md:text-base drop-shadow">
-                {step}
-              </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-6 md:gap-8">
+        {STEPS.map((step, i) => (
+          <div
+            key={step}
+            style={{ animation: `dice-roll-in 0.6s ease-out ${i * 120}ms both` }}
+            className="flex flex-col items-center gap-3 md:gap-4"
+          >
+            <div className="block md:hidden">
+              <DiceCube front={i + 1} size={110} duration={8 + i} />
             </div>
-          ))}
-        </div>
+            <div className="hidden md:block">
+              <DiceCube front={i + 1} size={96} duration={8 + i} />
+            </div>
+            <div className="font-semibold text-center text-white text-sm md:text-base drop-shadow">
+              {step}
+            </div>
+          </div>
+        ))}
+      </div>
       </section>
 
       <div className="wonder-focus-row">

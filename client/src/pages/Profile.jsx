@@ -9,6 +9,136 @@ function formatRemaining(ms) {
   return `${hours}h ${minutes}m`;
 }
 
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+const STATUS_STYLES = {
+  queued: "bg-yellow/30 text-ink",
+  processing: "bg-blue/30 text-ink animate-pulse",
+  ready: "bg-blue text-ink",
+  failed: "bg-orange/30 text-orange",
+};
+
+// A real shopping-cart glyph (body + wheels + handle), not a plain bag icon.
+function CartIcon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none" />
+      <path d="M2.5 3h2l2.4 12.2a2 2 0 0 0 2 1.6h8.2a2 2 0 0 0 2-1.6L21 7H6" />
+    </svg>
+  );
+}
+
+function EmptyBasket() {
+  return (
+    <div className="text-center p-10">
+      <CartIcon className="w-12 h-12 mx-auto text-ink/20 mb-3" />
+      <p className="text-ink/50 text-sm">
+        Your cart is empty. Unlock a product and add it here to get started.
+      </p>
+    </div>
+  );
+}
+
+function BasketItems({ cart, removingCartId, onRemove }) {
+  return (
+    <div className="divide-y divide-cream/60">
+      {cart.map((item) => (
+        <div key={item._id} className="flex items-center gap-4 px-6 py-4">
+          <img
+            src={item.productId?.sampleAssetUrl || "https://placehold.co/100x100/ED802A/E9CEAF?text=?"}
+            alt={item.productId?.title}
+            className="w-14 h-14 rounded-lg object-cover shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold truncate">{item.productId?.title}</p>
+            <p className="text-xs text-ink/50 capitalize">{item.productId?.type}</p>
+          </div>
+          <span className="text-xs bg-cream text-ink/70 px-2 py-1 rounded-full font-semibold shrink-0">
+            Qty 1
+          </span>
+          <span className="font-semibold text-orange whitespace-nowrap">{item.productId?.coinPrice} coins</span>
+          <button
+            onClick={() => onRemove(item.productId._id)}
+            disabled={removingCartId === item.productId._id}
+            className="text-xs text-ink/40 hover:text-orange font-semibold disabled:opacity-50"
+          >
+            {removingCartId === item.productId._id ? "…" : "Remove"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BasketFooter({ total }) {
+  return (
+    <div className="px-6 py-5 bg-cream/40 border-t border-cream space-y-3">
+      <div className="flex items-center justify-between text-sm text-ink/60">
+        <span>Subtotal</span>
+        <span>{total} coins</span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="font-bold text-ink">Total</span>
+        <span className="text-xl font-bold text-orange">{total} coins</span>
+      </div>
+      
+      <a
+        href="/checkout"
+        className="flex items-center justify-center gap-2 w-full bg-blue py-3 rounded-full font-semibold hover:opacity-90 transition"
+      >
+        <CartIcon className="w-4 h-4" />
+        Proceed to checkout
+      </a>
+    </div>
+  );
+}
+
+function ReceiptBox({ job, deletingJobId, onDelete }) {
+  return (
+    <div className="wonder-box-wrap">
+      <div className="wonder-box flex flex-col h-full">
+        <img
+          src={job.productId?.sampleAssetUrl || "https://placehold.co/400x400/ED802A/E9CEAF?text=?"}
+          alt={job.productId?.title}
+          className="w-full aspect-square object-cover"
+        />
+        <div className="p-4 flex flex-col flex-1">
+          <div className="flex items-start justify-between gap-2 mb-1">
+            <h3 className="font-bold text-ink leading-snug text-sm">{job.productId?.title}</h3>
+            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full capitalize shrink-0 ${STATUS_STYLES[job.status] || "bg-cream text-ink"}`}>
+              {job.status}
+            </span>
+          </div>
+          <p className="text-xs text-ink/50 mb-3">
+            {formatDate(job.createdAt)} · {job.productId?.coinPrice ?? "—"} coins
+          </p>
+          <div className="mt-auto flex items-center gap-4">
+            {job.status === "ready" && (
+              <a href={job.resultAssetUrl} className="text-blue font-semibold text-xs hover:underline">
+                Download
+              </a>
+            )}
+            <button
+              onClick={() => onDelete(job._id, job.productId?.title || "this item")}
+              disabled={deletingJobId === job._id}
+              className="text-orange font-semibold text-xs hover:underline disabled:opacity-50 ml-auto"
+            >
+              {deletingJobId === job._id ? "Deleting…" : "Delete"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Profile() {
   const [data, setData] = useState(null);
   const [removingCartId, setRemovingCartId] = useState(null);
@@ -66,6 +196,8 @@ export default function Profile() {
   const lastReset = data.user.lastEngagementResetAt ? new Date(data.user.lastEngagementResetAt).getTime() : 0;
   const elapsed = Date.now() - lastReset;
   const onCooldown = elapsed < RESET_COOLDOWN_MS;
+  const basketTotal = data.cart.reduce((sum, item) => sum + (item.productId?.coinPrice || 0), 0);
+  const hasItems = data.cart.length > 0;
 
   return (
     <div className="space-y-8">
@@ -93,54 +225,32 @@ export default function Profile() {
         {resetMessage && <p className="text-sm text-ink/70 mt-2">{resetMessage}</p>}
       </section>
 
-      <section>
-        <h2 className="text-xl font-bold mb-3">Cart</h2>
-        <div className="grid gap-3">
-          {data.cart.map((item) => (
-            <div key={item._id} className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center">
-              <span>{item.productId.title}</span>
-              <div className="flex items-center gap-4">
-                <span className="font-semibold">{item.productId.coinPrice} coins</span>
-                <button
-                  onClick={() => removeFromCart(item.productId._id)}
-                  disabled={removingCartId === item.productId._id}
-                  className="text-sm text-orange font-semibold hover:underline disabled:opacity-50"
-                >
-                  {removingCartId === item.productId._id ? "Removing…" : "Remove"}
-                </button>
-              </div>
-            </div>
-          ))}
-          {data.cart.length === 0 && <p className="text-ink/50 text-sm">Nothing in cart yet.</p>}
+      <section className="bg-white rounded-2xl shadow-sm overflow-hidden border-2 border-blue/20">
+        <div className="bg-ink text-cream px-6 py-4 flex items-center gap-3">
+          <CartIcon className="w-6 h-6" />
+          <h2 className="font-bold">Your Cart</h2>
+          {hasItems && (
+            <span className="ml-auto text-xs bg-blue text-ink px-2.5 py-1 rounded-full font-bold">
+              {data.cart.length}
+            </span>
+          )}
         </div>
-        {data.cart.length > 0 && (
-          <a href="/checkout" className="inline-block mt-4 bg-blue px-5 py-2 rounded-full font-semibold">
-            Go to checkout
-          </a>
-        )}
+
+        {!hasItems && <EmptyBasket />}
+        {hasItems && <BasketItems cart={data.cart} removingCartId={removingCartId} onRemove={removeFromCart} />}
+        {hasItems && <BasketFooter total={basketTotal} />}
       </section>
 
       <section>
-        <h2 className="text-xl font-bold mb-3">Purchases</h2>
-        <div className="grid gap-3">
+        <h2 className="text-xl font-bold mb-3">Your Receipts</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {data.purchases.map((job) => (
-            <div key={job._id} className="bg-white rounded-xl p-4 shadow-sm flex justify-between items-center gap-3">
-              <span className="flex-1">{job.productId?.title}</span>
-              <span className="text-sm capitalize text-ink/60">{job.status}</span>
-              {job.status === "ready" && (
-                <a href={job.resultAssetUrl} className="text-blue font-semibold text-sm">Download</a>
-              )}
-              <button
-                onClick={() => deletePurchase(job._id, job.productId?.title || "this item")}
-                disabled={deletingJobId === job._id}
-                className="text-sm text-orange font-semibold hover:underline disabled:opacity-50"
-              >
-                {deletingJobId === job._id ? "Deleting…" : "Delete"}
-              </button>
-            </div>
+            <ReceiptBox key={job._id} job={job} deletingJobId={deletingJobId} onDelete={deletePurchase} />
           ))}
-          {data.purchases.length === 0 && <p className="text-ink/50 text-sm">No purchases yet.</p>}
         </div>
+        {data.purchases.length === 0 && (
+          <p className="text-ink/50 text-sm bg-white rounded-2xl p-6 shadow-sm">No purchases yet.</p>
+        )}
       </section>
     </div>
   );
