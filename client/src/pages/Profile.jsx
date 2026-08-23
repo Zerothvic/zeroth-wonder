@@ -102,37 +102,40 @@ function BasketFooter({ total }) {
 
 function ReceiptBox({ job, deletingJobId, onDelete }) {
   return (
-    <div className="wonder-box-wrap">
-      <div className="wonder-box flex flex-col h-full">
-        <img
-          src={job.productId?.sampleAssetUrl || "https://placehold.co/400x400/ED802A/E9CEAF?text=?"}
-          alt={job.productId?.title}
-          className="w-full aspect-square object-cover"
-        />
-        <div className="p-4 flex flex-col flex-1">
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <h3 className="font-bold text-ink leading-snug text-sm">{job.productId?.title}</h3>
-            <span className={`text-[10px] font-semibold px-2 py-1 rounded-full capitalize shrink-0 ${STATUS_STYLES[job.status] || "bg-cream text-ink"}`}>
-              {job.status}
-            </span>
-          </div>
-          <p className="text-xs text-ink/50 mb-3">
-            {formatDate(job.createdAt)} · {job.productId?.coinPrice ?? "—"} coins
-          </p>
-          <div className="mt-auto flex items-center gap-4">
-            {job.status === "ready" && (
-              <a href={job.resultAssetUrl} className="text-blue font-semibold text-xs hover:underline">
-                Download
-              </a>
-            )}
-            <button
-              onClick={() => onDelete(job._id, job.productId?.title || "this item")}
-              disabled={deletingJobId === job._id}
-              className="text-orange font-semibold text-xs hover:underline disabled:opacity-50 ml-auto"
-            >
-              {deletingJobId === job._id ? "Deleting…" : "Delete"}
-            </button>
-          </div>
+    <div className="flex items-center gap-14 p-5">
+      <div className="wonder-box3d shrink-0">
+        <div className="box-top" />
+        <div className="box-side" />
+        <div className="box-front">
+          <img
+            src={job.productId?.sampleAssetUrl || "https://placehold.co/400x400/ED802A/E9CEAF?text=?"}
+            alt={job.productId?.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-sm p-5">
+        <h3 className="font-bold text-ink leading-snug mb-1">{job.productId?.title}</h3>
+        <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize mb-2 ${STATUS_STYLES[job.status] || "bg-cream text-ink"}`}>
+          {job.status}
+        </span>
+        <p className="text-xs text-ink/50 mb-3">
+          {formatDate(job.createdAt)} · {job.productId?.coinPrice ?? "—"} coins
+        </p>
+        <div className="flex items-center gap-4">
+          {job.status === "ready" && (
+            <a href={job.resultAssetUrl} className="text-blue font-semibold text-sm hover:underline">
+              Download
+            </a>
+          )}
+          <button
+            onClick={() => onDelete(job._id, job.productId?.title || "this item")}
+            disabled={deletingJobId === job._id}
+            className="text-orange font-semibold text-sm hover:underline disabled:opacity-50"
+          >
+            {deletingJobId === job._id ? "Deleting…" : "Delete"}
+          </button>
         </div>
       </div>
     </div>
@@ -225,7 +228,7 @@ export default function Profile() {
         {resetMessage && <p className="text-sm text-ink/70 mt-2">{resetMessage}</p>}
       </section>
 
-      <section className="bg-white rounded-2xl shadow-sm overflow-hidden border-2 border-blue/20">
+      <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
         <div className="bg-ink text-cream px-6 py-4 flex items-center gap-3">
           <CartIcon className="w-6 h-6" />
           <h2 className="font-bold">Your Cart</h2>
@@ -242,8 +245,8 @@ export default function Profile() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold mb-3">Your Receipts</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        <h2 className="text-xl font-bold mb-3">Your Purchases</h2>
+        <div className="space-y-4">
           {data.purchases.map((job) => (
             <ReceiptBox key={job._id} job={job} deletingJobId={deletingJobId} onDelete={deletePurchase} />
           ))}

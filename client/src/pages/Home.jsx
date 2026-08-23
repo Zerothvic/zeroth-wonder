@@ -68,10 +68,7 @@ function DiceCube({ front, size = 96, duration = 9 }) {
   );
 }
 
-const STEPS = ["", 
-                "", 
-                "", 
-                ""];
+const STEPS = ["", "", "", ""];
 
 export default function Home() {
   return (
@@ -121,49 +118,50 @@ export default function Home() {
       </section>
 
       <section>
-        
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-6 md:gap-8">
-        {STEPS.map((step, i) => (
-          <div
-            key={step}
-            style={{ animation: `dice-roll-in 0.6s ease-out ${i * 120}ms both` }}
-            className="flex flex-col items-center gap-3 md:gap-4"
-          >
-            <div className="block md:hidden">
-              <DiceCube front={i + 1} size={110} duration={8 + i} />
+          {STEPS.map((step, i) => (
+            <div
+              key={i}
+              style={{ animation: `dice-roll-in 0.6s ease-out ${i * 120}ms both` }}
+              className={`flex-col items-center gap-3 md:gap-4 ${
+                i < 2 ? "flex" : "hidden md:flex"
+              }`}
+            >
+              <div className="block md:hidden">
+                <DiceCube front={i + 1} size={110} duration={8 + i} />
+              </div>
+              <div className="hidden md:block">
+                <DiceCube front={i + 1} size={96} duration={8 + i} />
+              </div>
+              <div className="font-semibold text-center text-white text-sm md:text-base drop-shadow">
+                {step}
+              </div>
             </div>
-            <div className="hidden md:block">
-              <DiceCube front={i + 1} size={96} duration={8 + i} />
-            </div>
-            <div className="font-semibold text-center text-white text-sm md:text-base drop-shadow">
-              {step}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       </section>
 
       <div className="wonder-focus-row">
-  <section className="wonder-panel bg-gradient-to-br from-orange to-blue rounded-2xl p-8 md:p-10 shadow-md text-center">
-    <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-sm">Welcome to Zeroth Wonder</h2>
-    <p className="text-white/95 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
-      Trade your attention for one-of-a-kind, AI-made things about you — a comic, a fortune,
-      a song, a mini-documentary, even a chat with your past or future self. No payment, no
-      subscription — just engage, unlock, and generate something that's genuinely yours.
-    </p>
-  </section>
+        <section className="wonder-panel bg-gradient-to-br from-orange to-blue rounded-2xl p-8 md:p-10 shadow-md text-center">
+          <h2 className="text-2xl font-bold text-white mb-4 drop-shadow-sm">Welcome to Zeroth Wonder</h2>
+          <p className="text-white/95 max-w-2xl mx-auto leading-relaxed drop-shadow-sm">
+            Trade your engagements for one-of-a-kind, AI-made things about you: a comic book, a peek at your fortune,
+            a theme song for your exciting life, a mini-documentary starring YOU, even a chat with your past or future self. No payment, no
+            subscription — just engage, earn coins, unlock your FREE gifts, and voila! It's yours!
+          </p>
+        </section>
 
-  <section id="rules" className="wonder-panel bg-white rounded-2xl p-8 shadow-sm">
-    <h2 className="text-2xl font-bold text-orange mb-4">Terms & Conditions</h2>
-    <ul className="list-disc list-inside space-y-2 text-ink/80 text-sm">
-      <li>One account per person. Multi-accounting to farm coins will be suspended.</li>
-      <li>Every product is AI-generated from your prompt — outputs vary and are not guaranteed to match expectations exactly.</li>
-      <li>Prompts may not target real private individuals without consent, and must follow our content policy.</li>
-      <li>All downloads carry a Zeroth Wonder watermark or shout-out.</li>
-      <li>Coins have no cash value and cannot be transferred or resold.</li>
-    </ul>
-  </section>
-</div>
+        <section id="rules" className="wonder-panel bg-white rounded-2xl p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-orange mb-4">Terms & Conditions</h2>
+          <ul className="list-disc list-inside space-y-2 text-ink/80 text-sm">
+            <li>One account per person. Multi-accounting to farm coins will be suspended.</li>
+            <li>Every product is AI-generated from your prompt — outputs vary and are not guaranteed to match expectations exactly.</li>
+            <li>Prompts may not target real private individuals without consent, and must follow our content policy.</li>
+            <li>All downloads carry a Zeroth Wonder watermark or shout-out.</li>
+            <li>Coins have no cash value and cannot be transferred or resold.</li>
+          </ul>
+        </section>
+      </div>
     </div>
   );
 }

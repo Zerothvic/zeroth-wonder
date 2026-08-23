@@ -124,19 +124,19 @@ export default function Navbar() {
         </div>
 
         <nav className="relative z-10 flex flex-col p-5 gap-1 text-base font-semibold">
-          <Link to="/" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 transition">
+          <Link to="/" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 hover:scale-105 origin-left transition-all">
             Home
           </Link>
-          <Link to="/products" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 transition">
+          <Link to="/products" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 hover:scale-105 origin-left transition-all">
             Products
           </Link>
           {user?.isAdmin && (
-            <Link to="/admin" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 transition">
+            <Link to="/admin" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 hover:scale-105 origin-left transition-all">
               Admin
             </Link>
           )}
           {user && (
-            <Link to="/profile" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 transition">
+            <Link to="/profile" onClick={close} className="px-4 py-3 rounded-xl hover:bg-cream/15 hover:scale-105 origin-left transition-all">
               Profile · {user.coinBalance} coins
             </Link>
           )}
