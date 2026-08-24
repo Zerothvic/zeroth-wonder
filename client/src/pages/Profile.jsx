@@ -102,7 +102,7 @@ function BasketFooter({ total }) {
 
 function ReceiptBox({ job, deletingJobId, onDelete }) {
   return (
-    <div className="flex items-center gap-14 p-5">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-14 p-5">
       <div className="wonder-box3d shrink-0">
         <div className="box-top" />
         <div className="box-side" />
@@ -204,12 +204,12 @@ export default function Profile() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-white rounded-2xl p-6 shadow-sm flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{data.user.displayName}</h1>
-          <p className="text-ink/60 text-sm">{data.user.email}</p>
+      <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold truncate">{data.user.displayName}</h1>
+          <p className="text-ink/60 text-sm truncate">{data.user.email}</p>
         </div>
-        <div className="text-3xl font-bold text-orange">{data.user.coinBalance} coins</div>
+        <div className="text-3xl font-bold text-orange shrink-0">{data.user.coinBalance} coins</div>
       </div>
 
       <section className="bg-white rounded-2xl p-6 shadow-sm">

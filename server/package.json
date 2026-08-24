@@ -12,7 +12,9 @@
     "make-admin": "node src/seed/makeAdmin.js",
     "verify-user": "node src/seed/verifyUser.js",
     "backfill-usernames": "node src/seed/backfillUsernames.js",
-    "check-user": "node src/seed/checkUser.js"
+    "check-user": "node src/seed/checkUser.js",
+    "grant-signup": "node src/seed/grantSignupCredit.js",
+    "grant-coins": "node src/seed/grantCoins.js"
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.25",
