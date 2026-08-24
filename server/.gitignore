@@ -7,3 +7,10 @@ dist
 test-*.js
 check-*.js
 list-*.js
+
+src/seed/makeAdmin.js
+src/seed/verifyUser.js
+src/seed/grantCoins.js
+src/seed/grantSignupCredit.js
+src/seed/backfillUsernames.js
+src/seed/checkUser.js
