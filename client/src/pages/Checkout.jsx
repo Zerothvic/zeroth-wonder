@@ -13,12 +13,23 @@ function compileAnswersOnly(answers) {
 }
 
 function QuestionWizard({ product, onComplete }) {
-  const questions = product.promptQuestions?.length === 5
-    ? product.promptQuestions
-    : ["Tell us what you'd like generated.", "", "", "", ""].slice(0, 1);
+  const title = product?.title?.toLowerCase() || "";
+  const isFiveQuestionProduct =
+    title.includes("fortune") || title.includes("comic");
+
+  const questions =
+    product.promptQuestions?.length > 0
+      ? product.promptQuestions
+      : ["Tell us what you'd like generated."];
+
+  // Fortune Reading and Comic Book use 5 questions.
+  // All other products use one question.
+  const displayedQuestions = isFiveQuestionProduct
+    ? questions.slice(0, 5)
+    : questions.slice(0, 1);
 
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState(Array(questions.length).fill(""));
+  const [answers, setAnswers] = useState(Array(displayedQuestions.length).fill(""));
   const [done, setDone] = useState(false);
 
   const current = answers[step] || "";
@@ -26,8 +37,8 @@ function QuestionWizard({ product, onComplete }) {
 
   const next = () => {
     if (!canAdvance) return;
-    if (step === questions.length - 1) {
-      const fullPrompt = compileFullPrompt(questions, answers);
+    if (step === displayedQuestions.length - 1) {
+      const fullPrompt = compileFullPrompt(displayedQuestions, answers);
       const promptSummary = compileAnswersOnly(answers);
       setDone(true);
       onComplete(fullPrompt, promptSummary);
@@ -57,15 +68,15 @@ function QuestionWizard({ product, onComplete }) {
   return (
     <div className="bg-cream/40 border border-blue rounded-lg p-4 space-y-3">
       <div className="flex gap-1.5">
-        {questions.map((_, i) => (
+        {displayedQuestions.map((_, i) => (
           <span
             key={i}
             className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-orange" : "bg-blue/30"}`}
           />
         ))}
       </div>
-      <p className="text-xs text-ink/50">Question {step + 1} of {questions.length}</p>
-      <p className="font-semibold text-ink">{questions[step]}</p>
+      <p className="text-xs text-ink/50">Question {step + 1} of {displayedQuestions.length}</p>
+      <p className="font-semibold text-ink">{displayedQuestions[step]}</p>
       <textarea
         value={current}
         onChange={(e) => {
@@ -92,7 +103,7 @@ function QuestionWizard({ product, onComplete }) {
           disabled={!canAdvance}
           className="bg-orange text-cream px-5 py-2 rounded-full text-sm font-semibold disabled:opacity-40"
         >
-          {step === questions.length - 1 ? "Finish" : "Next"}
+          {step === displayedQuestions.length - 1 ? "Finish" : "Next"}
         </button>
       </div>
     </div>

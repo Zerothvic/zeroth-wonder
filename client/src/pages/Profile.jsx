@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import { api } from "../api/client.js";
 
 const RESET_COOLDOWN_MS = 3 * 60 * 60 * 1000;
@@ -50,27 +51,38 @@ function BasketItems({ cart, removingCartId, onRemove }) {
   return (
     <div className="divide-y divide-cream/60">
       {cart.map((item) => (
-        <div key={item._id} className="flex items-center gap-4 px-6 py-4">
+        <div
+          key={item._id}
+          className="grid grid-cols-[auto_minmax(0,1fr)] sm:flex sm:items-center gap-x-3 gap-y-3 sm:gap-4 px-4 sm:px-6 py-4"
+        >
           <img
             src={item.productId?.sampleAssetUrl || "https://placehold.co/100x100/ED802A/E9CEAF?text=?"}
             alt={item.productId?.title}
             className="w-14 h-14 rounded-lg object-cover shrink-0"
           />
-          <div className="flex-1 min-w-0">
+
+          <div className="min-w-0 self-center sm:flex-1">
             <p className="font-semibold truncate">{item.productId?.title}</p>
-            <p className="text-xs text-ink/50 capitalize">{item.productId?.type}</p>
+            <p className="text-xs text-ink/50 capitalize truncate">{item.productId?.type}</p>
           </div>
-          <span className="text-xs bg-cream text-ink/70 px-2 py-1 rounded-full font-semibold shrink-0">
-            Qty 1
-          </span>
-          <span className="font-semibold text-orange whitespace-nowrap">{item.productId?.coinPrice} coins</span>
-          <button
-            onClick={() => onRemove(item.productId._id)}
-            disabled={removingCartId === item.productId._id}
-            className="text-xs text-ink/40 hover:text-orange font-semibold disabled:opacity-50"
-          >
-            {removingCartId === item.productId._id ? "…" : "Remove"}
-          </button>
+
+          <div className="col-span-2 flex items-center justify-between gap-2 sm:contents">
+            <span className="text-xs bg-cream text-ink/70 px-2 py-1 rounded-full font-semibold shrink-0">
+              Qty 1
+            </span>
+
+            <span className="font-semibold text-orange whitespace-nowrap">
+              {item.productId?.coinPrice} coins
+            </span>
+
+            <button
+              onClick={() => onRemove(item.productId._id)}
+              disabled={removingCartId === item.productId._id}
+              className="text-xs text-ink/40 hover:text-orange font-semibold disabled:opacity-50 shrink-0"
+            >
+              {removingCartId === item.productId._id ? "…" : "Remove"}
+            </button>
+          </div>
         </div>
       ))}
     </div>
@@ -79,16 +91,15 @@ function BasketItems({ cart, removingCartId, onRemove }) {
 
 function BasketFooter({ total }) {
   return (
-    <div className="px-6 py-5 bg-cream/40 border-t border-cream space-y-3">
-      <div className="flex items-center justify-between text-sm text-ink/60">
+    <div className="px-4 sm:px-6 py-5 bg-cream/40 border-t border-cream space-y-3">
+      <div className="flex items-center justify-between text-sm text-ink/60 gap-4">
         <span>Subtotal</span>
-        <span>{total} coins</span>
+        <span className="whitespace-nowrap">{total} coins</span>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <span className="font-bold text-ink">Total</span>
-        <span className="text-xl font-bold text-orange">{total} coins</span>
+        <span className="text-xl font-bold text-orange whitespace-nowrap">{total} coins</span>
       </div>
-      
       <a
         href="/checkout"
         className="flex items-center justify-center gap-2 w-full bg-blue py-3 rounded-full font-semibold hover:opacity-90 transition"
@@ -114,7 +125,6 @@ function ReceiptBox({ job, deletingJobId, onDelete }) {
           />
         </div>
       </div>
-
       <div className="flex-1 min-w-0 bg-white rounded-2xl shadow-sm p-5">
         <h3 className="font-bold text-ink leading-snug mb-1">{job.productId?.title}</h3>
         <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize mb-2 ${STATUS_STYLES[job.status] || "bg-cream text-ink"}`}>
@@ -150,7 +160,10 @@ export default function Profile() {
   const [resetMessage, setResetMessage] = useState(null);
 
   const load = () => api.get("/profile").then(({ data }) => setData(data));
-  useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    load();
+  }, []);
 
   if (!data) return <p>Loading…</p>;
 
@@ -189,17 +202,24 @@ export default function Profile() {
     } catch (err) {
       const remaining = err.response?.data?.remainingMs;
       setResetMessage(
-        remaining ? `Try again in ${formatRemaining(remaining)}.` : err.response?.data?.error || "Couldn't reset right now."
+        remaining
+          ? `Try again in ${formatRemaining(remaining)}.`
+          : err.response?.data?.error || "Couldn't reset right now."
       );
     } finally {
       setResetting(false);
     }
   };
 
-  const lastReset = data.user.lastEngagementResetAt ? new Date(data.user.lastEngagementResetAt).getTime() : 0;
+  const lastReset = data.user.lastEngagementResetAt
+    ? new Date(data.user.lastEngagementResetAt).getTime()
+    : 0;
   const elapsed = Date.now() - lastReset;
   const onCooldown = elapsed < RESET_COOLDOWN_MS;
-  const basketTotal = data.cart.reduce((sum, item) => sum + (item.productId?.coinPrice || 0), 0);
+  const basketTotal = data.cart.reduce(
+    (sum, item) => sum + (item.productId?.coinPrice || 0),
+    0
+  );
   const hasItems = data.cart.length > 0;
 
   return (
@@ -223,7 +243,11 @@ export default function Profile() {
           disabled={resetting || onCooldown}
           className="bg-blue px-5 py-2 rounded-full font-semibold text-sm disabled:opacity-40"
         >
-          {resetting ? "Resetting…" : onCooldown ? `Available in ${formatRemaining(RESET_COOLDOWN_MS - elapsed)}` : "Reset engagements"}
+          {resetting
+            ? "Resetting…"
+            : onCooldown
+              ? `Available in ${formatRemaining(RESET_COOLDOWN_MS - elapsed)}`
+              : "Reset engagements"}
         </button>
         {resetMessage && <p className="text-sm text-ink/70 mt-2">{resetMessage}</p>}
       </section>
@@ -240,7 +264,13 @@ export default function Profile() {
         </div>
 
         {!hasItems && <EmptyBasket />}
-        {hasItems && <BasketItems cart={data.cart} removingCartId={removingCartId} onRemove={removeFromCart} />}
+        {hasItems && (
+          <BasketItems
+            cart={data.cart}
+            removingCartId={removingCartId}
+            onRemove={removeFromCart}
+          />
+        )}
         {hasItems && <BasketFooter total={basketTotal} />}
       </section>
 
@@ -248,11 +278,19 @@ export default function Profile() {
         <h2 className="text-xl font-bold mb-3">Your Purchases</h2>
         <div className="space-y-4">
           {data.purchases.map((job) => (
-            <ReceiptBox key={job._id} job={job} deletingJobId={deletingJobId} onDelete={deletePurchase} />
+            <ReceiptBox
+              key={job._id}
+              job={job}
+              deletingJobId={deletingJobId}
+              onDelete={deletePurchase}
+            />
           ))}
         </div>
+
         {data.purchases.length === 0 && (
-          <p className="text-ink/50 text-sm bg-white rounded-2xl p-6 shadow-sm">No purchases yet.</p>
+          <p className="text-ink/50 text-sm bg-white rounded-2xl p-6 shadow-sm">
+            No purchases yet.
+          </p>
         )}
       </section>
     </div>
