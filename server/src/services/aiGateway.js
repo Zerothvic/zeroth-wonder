@@ -1,8 +1,16 @@
 import { InferenceClient } from "@huggingface/inference";
 
-const IMAGE_PROVIDERS = ["huggingface-flux", "gemini-image"];
-const TTS_MODELS = ["hexgrad/Kokoro-82M", "ResembleAI/chatterbox"];
+const IMAGE_PROVIDERS = ["huggingface-flux", "gemini-image", "cloudflare-image"];
+const TTS_PROVIDERS = ["huggingface-kokoro", "huggingface-chatterbox", "cloudflare-melotts"];
 const TEXT_FALLBACK_MODEL = "deepseek-ai/DeepSeek-V4-Flash-0731";
+
+const CF_BASE = `https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/ai/run`;
+function cfHeaders() {
+  return {
+    Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+    "Content-Type": "application/json",
+  };
+}
 
 async function callWithFallback(providers, fn) {
   let lastErr;
@@ -17,6 +25,8 @@ async function callWithFallback(providers, fn) {
   throw lastErr;
 }
 
+// ---------- TEXT ----------
+
 async function generateTextGemini(prompt, system) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -30,11 +40,7 @@ async function generateTextGemini(prompt, system) {
   );
   if (!res.ok) throw new Error(`Gemini text ${res.status}: ${await res.text()}`);
   const data = await res.json();
-
   const candidate = data.candidates?.[0];
-  // A 200 response doesn't guarantee usable text — Gemini can return an
-  // empty/blocked candidate (e.g. safety filtering) without a non-2xx status.
-  // Surface that as a real failure so the Hugging Face fallback actually fires.
   if (candidate?.finishReason && candidate.finishReason !== "STOP") {
     throw new Error(`Gemini text blocked: finishReason=${candidate.finishReason}`);
   }
@@ -58,13 +64,34 @@ async function generateTextHuggingFace(prompt, system) {
   return text;
 }
 
+async function generateTextCloudflare(prompt, system) {
+  const res = await fetch(`${CF_BASE}/@cf/meta/llama-3.1-8b-instruct`, {
+    method: "POST",
+    headers: cfHeaders(),
+    body: JSON.stringify({
+      messages: [
+        ...(system ? [{ role: "system", content: system }] : []),
+        { role: "user", content: prompt },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`Cloudflare text ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text = data.result?.response;
+  if (!text) throw new Error("Cloudflare text: empty response");
+  return text;
+}
+
 export async function generateText(prompt, { system } = {}) {
-  return callWithFallback(["gemini", "huggingface"], async (provider) => {
+  return callWithFallback(["gemini", "huggingface", "cloudflare"], async (provider) => {
     if (provider === "gemini") return generateTextGemini(prompt, system);
     if (provider === "huggingface") return generateTextHuggingFace(prompt, system);
+    if (provider === "cloudflare") return generateTextCloudflare(prompt, system);
     throw new Error(`Unknown text provider: ${provider}`);
   });
 }
+
+// ---------- IMAGE ----------
 
 export async function generateImage(prompt) {
   return callWithFallback(IMAGE_PROVIDERS, async (provider) => {
@@ -75,8 +102,7 @@ export async function generateImage(prompt) {
         model: "black-forest-labs/FLUX.1-schnell",
         inputs: prompt,
       });
-      const arrayBuffer = await image.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      return Buffer.from(await image.arrayBuffer());
     }
     if (provider === "gemini-image") {
       const res = await fetch(
@@ -96,9 +122,49 @@ export async function generateImage(prompt) {
       if (!b64) throw new Error("No image returned");
       return Buffer.from(b64, "base64");
     }
+    if (provider === "cloudflare-image") {
+      const res = await fetch(`${CF_BASE}/@cf/black-forest-labs/flux-1-schnell`, {
+        method: "POST",
+        headers: cfHeaders(),
+        body: JSON.stringify({ prompt }),
+      });
+      if (!res.ok) throw new Error(`Cloudflare image ${res.status}: ${await res.text()}`);
+      const data = await res.json();
+      const b64 = data.result?.image;
+      if (!b64) throw new Error("Cloudflare image: empty response");
+      return Buffer.from(b64, "base64");
+    }
     throw new Error(`Unknown image provider: ${provider}`);
   });
 }
+
+// ---------- SPEECH ----------
+
+export async function generateSpeech(text) {
+  return callWithFallback(TTS_PROVIDERS, async (provider) => {
+    if (provider === "huggingface-kokoro" || provider === "huggingface-chatterbox") {
+      const model = provider === "huggingface-kokoro" ? "hexgrad/Kokoro-82M" : "ResembleAI/chatterbox";
+      const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
+      const audio = await client.textToSpeech({ provider: "auto", model, inputs: text });
+      return Buffer.from(await audio.arrayBuffer());
+    }
+    if (provider === "cloudflare-melotts") {
+      const res = await fetch(`${CF_BASE}/@cf/myshell-ai/melotts`, {
+        method: "POST",
+        headers: cfHeaders(),
+        body: JSON.stringify({ prompt: text, lang: "en" }),
+      });
+      if (!res.ok) throw new Error(`Cloudflare TTS ${res.status}: ${await res.text()}`);
+      const data = await res.json();
+      const b64 = data.result?.audio;
+      if (!b64) throw new Error("Cloudflare TTS: empty response");
+      return Buffer.from(b64, "base64");
+    }
+    throw new Error(`Unknown TTS provider: ${provider}`);
+  });
+}
+
+// ---------- INSTRUMENTAL (Hugging Face only — no equivalent elsewhere yet) ----------
 
 export async function generateInstrumental(prompt) {
   const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
@@ -107,22 +173,5 @@ export async function generateInstrumental(prompt) {
     model: "facebook/musicgen-small",
     inputs: prompt,
   });
-  const arrayBuffer = await audio.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
-export async function generateSpeech(text) {
-  const client = new InferenceClient(process.env.HUGGINGFACE_API_KEY);
-  let lastErr;
-  for (const model of TTS_MODELS) {
-    try {
-      const audio = await client.textToSpeech({ provider: "auto", model, inputs: text });
-      const arrayBuffer = await audio.arrayBuffer();
-      return { provider: `huggingface:${model}`, result: Buffer.from(arrayBuffer) };
-    } catch (err) {
-      lastErr = err;
-      console.warn(`[aiGateway] TTS model ${model} failed, trying next:`, err.message);
-    }
-  }
-  throw lastErr;
+  return Buffer.from(await audio.arrayBuffer());
 }

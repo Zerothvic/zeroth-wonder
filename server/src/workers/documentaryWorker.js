@@ -4,9 +4,9 @@ import { uploadBufferToCloudinary } from "../services/storage.js";
 
 export async function runDocumentaryJob(genJob) {
   const { provider, result: scriptRaw } = await generateText(
-    `Write a 2-minute documentary narration script (8-12 short scene beats, one per line) about: "${genJob.prompt}". Warm, cinematic, third-person.`
+    `Write a 2-minute documentary narration script (exactly 5-6 short scene beats, one per line) about: "${genJob.prompt}". Warm, cinematic, third-person.`
   );
-  const scenes = scriptRaw.split("\n").filter(Boolean).slice(0, 12);
+  const scenes = scriptRaw.split("\n").filter(Boolean).slice(0, 6);
 
   const sceneImages = [];
   for (const scene of scenes) {
