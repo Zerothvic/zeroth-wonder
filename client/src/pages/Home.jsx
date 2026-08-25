@@ -156,6 +156,7 @@ export default function Home() {
           <ul className="list-disc list-inside space-y-2 text-ink/80 text-sm">
             <li>One account per person. Multi-accounting to farm coins will be suspended.</li>
             <li>Every product is AI-generated from your prompt — outputs vary and are not guaranteed to match expectations exactly.</li>
+            <li>Engagements include signing up, comments, sharing, and liking.</li>
             <li>Prompts may not target real private individuals without consent, and must follow our content policy.</li>
             <li>All downloads carry a Zeroth Wonder watermark or shout-out.</li>
             <li>Coins have no cash value and cannot be transferred or resold.</li>
