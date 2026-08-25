@@ -128,7 +128,7 @@ router.post("/reset", requireAuth, async (req, res) => {
       });
     }
 
-    await Engagement.deleteMany({ userId: user._id, type: { $ne: "signup" } });
+    await Engagement.deleteMany({ userId: user._id, type: { $nin: ["signup", "comment"] } });
     user.lastEngagementResetAt = new Date(now);
     await user.save();
 
