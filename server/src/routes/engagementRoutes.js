@@ -59,27 +59,22 @@ router.post("/comment", engagementLimiter, requireAuth, async (req, res) => {
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ error: "Product not found" });
 
-    // First comment on this product earns coins (unique index below enforces
-    // one rewarded comment per user per product); further comments still
-    // save and display, just without a second coin payout.
-    let coinsAwarded = 0;
-    let engagement;
-    try {
-      engagement = await Engagement.create({
-        userId: req.user._id, productId, type: "comment", text: text.trim(), coinsAwarded: COIN_VALUES.comment,
-      });
-      coinsAwarded = COIN_VALUES.comment;
-      await applyCoinDelta({ userId: req.user._id, delta: COIN_VALUES.comment, reason: "engagement:comment", refId: engagement._id });
-    } catch (err) {
-      if (err.code !== 11000) throw err;
-      // Reward already claimed on this product — still save the comment itself,
-      // just as a non-unique, non-rewarded entry so it shows up in the list.
-      engagement = await Engagement.create({
-        userId: req.user._id, productId, type: "comment", text: text.trim(), coinsAwarded: 0,
-      });
-    }
+    const engagement = await Engagement.create({
+      userId: req.user._id,
+      productId,
+      type: "comment",
+      text: text.trim(),
+      coinsAwarded: COIN_VALUES.comment,
+    });
 
-    res.status(201).json({ engagement, coinsAwarded });
+    await applyCoinDelta({
+      userId: req.user._id,
+      delta: COIN_VALUES.comment,
+      reason: "engagement:comment",
+      refId: engagement._id,
+    });
+
+    res.status(201).json({ engagement, coinsAwarded: COIN_VALUES.comment });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -6,6 +6,7 @@ import UnlockRule from "../models/UnlockRule.js";
 import GenerationJob from "../models/GenerationJob.js";
 import User from "../models/User.js";
 import { uploadBufferToCloudinary } from "../services/storage.js";
+import Engagement from "../models/Engagement.js";
 
 const router = Router();
 router.use(requireAuth, requireAdmin);
@@ -83,6 +84,35 @@ router.get("/users", async (req, res) => {
 router.put("/users/:id/suspend", async (req, res) => {
   const user = await User.findByIdAndUpdate(req.params.id, { isSuspended: true }, { new: true });
   res.json(user);
+});
+
+// POST /api/admin/reindex-engagements — syncs schema indexes cleanly
+router.post("/reindex-engagements", async (req, res) => {
+  try {
+    const rawCollection = Engagement.collection;
+    
+    // Check existing indexes and drop the old unique constraint if present
+    const indexes = await rawCollection.indexes();
+    const oldIndex = indexes.find((idx) => idx.name === "userId_1_productId_1_type_1_platform_1");
+
+    let dropped = false;
+    if (oldIndex) {
+      await rawCollection.dropIndex("userId_1_productId_1_type_1_platform_1");
+      dropped = true;
+    }
+
+    // Build indexes matching the updated schema
+    await Engagement.syncIndexes();
+
+    res.json({
+      success: true,
+      message: "Engagement indexes synchronized successfully.",
+      droppedOldIndex: dropped,
+      currentIndexes: await rawCollection.indexes(),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

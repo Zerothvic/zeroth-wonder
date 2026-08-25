@@ -233,3 +233,66 @@ export async function renderConversationPNG(promptSummary, excerptText) {
 
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
+
+/**
+ * Overlays comic dialogue/caption onto a panel image using Sharp.
+ */
+export async function overlayComicDialogue(panelImageBuffer, text, panelNumber = 1) {
+  if (!text || !text.trim()) return panelImageBuffer;
+
+  const metadata = await sharp(panelImageBuffer).metadata();
+  const width = metadata.width || 1024;
+  const height = metadata.height || 1024;
+
+  const bubbleMaxWidth = Math.floor(width * 0.82);
+  const fontSize = Math.max(20, Math.floor(width * 0.026));
+  const lineHeight = Math.floor(fontSize * 1.35);
+  const paddingX = 24;
+  const paddingY = 16;
+  
+  const charsPerLine = Math.floor((bubbleMaxWidth - paddingX * 2) / (fontSize * 0.55));
+  const lines = wrapText(text.trim(), charsPerLine);
+
+  const longestLine = lines.reduce((a, b) => (b.length > a.length ? b : a), "");
+  const contentWidth = Math.min(
+    bubbleMaxWidth - paddingX * 2,
+    Math.max(120, Math.round(longestLine.length * fontSize * 0.55))
+  );
+  
+  const boxWidth = contentWidth + paddingX * 2;
+  const boxHeight = lines.length * lineHeight + paddingY * 2;
+
+  // Position: alternate top-left and bottom-left/center for visual variety
+  const boxX = (width - boxWidth) / 2;
+  const boxY = height - boxHeight - 48; // Bottom-pinned comic caption style
+  const textCenterX = width / 2;
+  const firstLineY = boxY + paddingY + fontSize * 0.8;
+
+  const tspans = lines
+    .map((line, i) => `<tspan x="${textCenterX}" y="${firstLineY + i * lineHeight}">${escapeXml(line)}</tspan>`)
+    .join("");
+
+  const svgOverlay = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <!-- Caption / Dialogue Box -->
+      <rect x="${boxX}" y="${boxY}" width="${boxWidth}" height="${boxHeight}" rx="14"
+            fill="#F2E2CF" opacity="0.94" stroke="#2B2118" stroke-width="3" />
+      
+      <!-- Dialogue Text -->
+      <text font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold"
+            fill="#2B2118" text-anchor="middle">
+        ${tspans}
+      </text>
+
+      <!-- Panel Badge -->
+      <rect x="24" y="24" width="42" height="32" rx="8" fill="#2B2118" opacity="0.8" />
+      <text x="45" y="46" font-family="Arial, sans-serif" font-size="16" font-weight="bold"
+            fill="#F2E2CF" text-anchor="middle">${panelNumber}</text>
+    </svg>
+  `;
+
+  return sharp(panelImageBuffer)
+    .composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }])
+    .png()
+    .toBuffer();
+}
