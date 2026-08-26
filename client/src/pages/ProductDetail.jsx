@@ -42,16 +42,18 @@ export default function ProductDetail() {
   const like = async () => { await api.post("/engagements/like", { productId: id }); load(); };
 
   const submitComment = async () => {
-    if (comment.trim().length < 8) return;
-    setPostingComment(true);
-    try {
-      await api.post("/engagements/comment", { productId: id, text: comment });
-      setComment("");
-      await Promise.all([load(), loadComments()]);
-    } finally {
-      setPostingComment(false);
-    }
-  };
+  if (comment.trim().length < 8) return;
+  setPostingComment(true);
+  try {
+    await api.post("/engagements/comment", { productId: id, text: comment });
+    setComment("");
+    await Promise.all([load(), loadComments()]);
+  } catch (err) {
+    alert(err.response?.data?.error || "Couldn't post comment");
+  } finally {
+    setPostingComment(false);
+  }
+};
 
   const startEdit = (c) => {
     setEditingId(c.id);

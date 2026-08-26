@@ -90,23 +90,26 @@ router.put("/users/:id/suspend", async (req, res) => {
 router.post("/reindex-engagements", async (req, res) => {
   try {
     const rawCollection = Engagement.collection;
-    
-    // Check existing indexes and drop the old unique constraint if present
+
+    // Check existing indexes on the collection
     const indexes = await rawCollection.indexes();
-    const oldIndex = indexes.find((idx) => idx.name === "userId_1_productId_1_type_1_platform_1");
+    const oldIndex = indexes.find(
+      (idx) => idx.name === "userId_1_productId_1_type_1_platform_1"
+    );
 
     let dropped = false;
     if (oldIndex) {
+      // Drop the legacy index that blocked multiple rewarded comments
       await rawCollection.dropIndex("userId_1_productId_1_type_1_platform_1");
       dropped = true;
     }
 
-    // Build indexes matching the updated schema
+    // Rebuild indexes defined in the current Engagement schema
     await Engagement.syncIndexes();
 
     res.json({
       success: true,
-      message: "Engagement indexes synchronized successfully.",
+      message: "Engagement collection reindexed successfully.",
       droppedOldIndex: dropped,
       currentIndexes: await rawCollection.indexes(),
     });

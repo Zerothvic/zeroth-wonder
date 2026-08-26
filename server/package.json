@@ -14,7 +14,8 @@
     "backfill-usernames": "node src/seed/backfillUsernames.js",
     "check-user": "node src/seed/checkUser.js",
     "grant-signup": "node src/seed/grantSignupCredit.js",
-    "grant-coins": "node src/seed/grantCoins.js"
+    "grant-coins": "node src/seed/grantCoins.js",
+    "reindex-engagements": "node src/seed/reindexEngagements.js"
   },
   "dependencies": {
     "@huggingface/inference": "^4.13.25",
