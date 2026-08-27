@@ -16,7 +16,6 @@ router.get("/", requireAuth, async (req, res) => {
       id: req.user._id,
       email: req.user.email,
       username: req.user.username,
-      displayName: req.user.displayName,
       coinBalance: req.user.coinBalance,
       isAdmin: req.user.isAdmin,
       lastEngagementResetAt: req.user.lastEngagementResetAt,
@@ -26,8 +25,6 @@ router.get("/", requireAuth, async (req, res) => {
   });
 });
 
-// DELETE /api/profile/purchases/:jobId — removes both the DB record and the
-// actual Cloudinary file, so nothing gets orphaned in storage.
 router.delete("/purchases/:jobId", requireAuth, async (req, res) => {
   try {
     const job = await GenerationJob.findOne({ _id: req.params.jobId, userId: req.user._id });
@@ -37,9 +34,6 @@ router.delete("/purchases/:jobId", requireAuth, async (req, res) => {
       try {
         await deleteFromCloudinary(job.resultPublicId, job.resultResourceType || "image");
       } catch (err) {
-        // Log but don't block deletion of the DB record on a storage-side failure —
-        // an orphaned Cloudinary file is a much smaller problem than a user being
-        // unable to remove something from their own list.
         console.error("[profile] Cloudinary delete failed:", err.message);
       }
     }

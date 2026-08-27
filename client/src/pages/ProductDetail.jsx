@@ -124,7 +124,7 @@ export default function ProductDetail() {
       {product.progress && (
         <div className="mb-6 space-y-2 text-sm">
           <ProgressRow label="Likes" p={product.progress.likes} />
-          <ProgressRow label="Comment" p={product.progress.comments} />
+          <ProgressRow label="Comment (last 24h)" p={product.progress.comments} />
           <ProgressRow label="Sign up" p={product.progress.signup} />
           <ProgressRow label="Shares (3 platforms)" p={product.progress.shares} />
         </div>
@@ -157,7 +157,7 @@ export default function ProductDetail() {
                 submitComment();
               }
             }}
-            placeholder="Leave a comment (min 8 characters) to earn coins… (Enter to post, Shift+Enter for a new line)"
+            placeholder="Leave a comment (min 8 characters) to earn coins — comment as often as you like! (Enter to post, Shift+Enter for a new line)"
             className="w-full border border-blue rounded-lg p-3 text-sm"
           />
           <button

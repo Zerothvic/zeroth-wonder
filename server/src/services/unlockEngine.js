@@ -5,8 +5,10 @@ const COMMENT_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
  * Generic rule evaluator shared by ALL five products (bottleneck 12.9).
- * Admin edits thresholds in the UnlockRule collection; this function never
- * needs to change when the economy is tuned.
+ * Comments are unlimited and never deleted for expiring — but only a
+ * comment posted within the last 24h counts toward the unlock requirement.
+ * Once a qualifying comment ages past 24h, the user needs to post a new
+ * one to re-satisfy this requirement (the old comment stays visible).
  */
 export async function getUnlockProgress(userIdOrSessionId, isUser, productId) {
   const rule = await UnlockRule.findOne({ productId });

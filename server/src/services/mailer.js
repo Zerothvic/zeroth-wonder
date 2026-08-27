@@ -28,3 +28,30 @@ export async function sendVerificationEmail(toEmail, verificationToken) {
     throw new Error(`Brevo API error ${res.status}: ${errorBody}`);
   }
 }
+
+export async function sendPasswordResetEmail(toEmail, resetToken) {
+  const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify({
+      sender: { name: "Zeroth Wonder", email: process.env.SMTP_FROM },
+      to: [{ email: toEmail }],
+      subject: "Reset your Zeroth Wonder password",
+      htmlContent: `
+        <p>You requested a password reset for Zeroth Wonder.</p>
+        <p><a href="${resetUrl}">Click here to reset your password</a></p>
+        <p>This link expires in 1 hour.</p>
+      `,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.text();
+    throw new Error(`Brevo API error ${res.status}: ${errorBody}`);
+  }
+}

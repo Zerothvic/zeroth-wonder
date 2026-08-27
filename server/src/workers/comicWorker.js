@@ -55,3 +55,4 @@ Return ONLY a valid JSON array of 5 objects with no extra formatting or backtick
 
   return { assetUrl: url, publicId, resourceType, provider };
 }
+
