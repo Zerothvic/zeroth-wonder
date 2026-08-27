@@ -226,7 +226,7 @@ export default function Profile() {
     <div className="space-y-8">
       <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold truncate">{data.user.displayName}</h1>
+          <h1 className="text-2xl font-bold truncate">@{data.user.username || data.user.displayName}</h1>
           <p className="text-ink/60 text-sm truncate">{data.user.email}</p>
         </div>
         <div className="text-3xl font-bold text-orange shrink-0">{data.user.coinBalance} coins</div>

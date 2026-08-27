@@ -10,6 +10,7 @@ import Checkout from "./pages/Checkout.jsx";
 import Admin from "./pages/Admin.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { useAuthStore } from "./store/useAuthStore.js";
 import Verify from "./pages/Verify.jsx";
@@ -24,7 +25,10 @@ const BACKGROUNDS = [
   { match: (path) => path === "/profile", src: "/images/Profile-bg.png" },
   { match: (path) => path === "/checkout", src: "/images/checkout-bg.jpg" },
   { match: (path) => path === "/admin", src: "/images/admin-bg.png" },
-  { match: (path) => path === "/login" || path === "/signup", src: "/images/auth-bg.png" },
+  {
+    match: (path) => ["/login", "/signup", "/reset-password"].includes(path),
+    src: "/images/auth-bg.png",
+  },
 ];
 
 function getBackground(pathname) {
@@ -43,28 +47,51 @@ export default function App() {
   const bgSrc = getBackground(location.pathname);
 
   return (
-  <div className="min-h-screen flex flex-col relative">
-    <img
-      key={bgSrc}
-      src={bgSrc}
-      alt=""
-      aria-hidden="true"
-      className="fixed inset-0 w-full h-full object-cover -z-10 transition-opacity duration-300"
-    />
-    <Navbar />
-    <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/products/:id" element={<ProductDetail />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/verify" element={<Verify />} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
-      </Routes>
-    </main>
-    <Footer />
-  </div>
-);
+    <div className="min-h-screen flex flex-col relative">
+      <img
+        key={bgSrc}
+        src={bgSrc}
+        alt=""
+        aria-hidden="true"
+        className="fixed inset-0 w-full h-full object-cover -z-10 transition-opacity duration-300"
+      />
+      <Navbar />
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify" element={<Verify />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  );
 }

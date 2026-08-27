@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 
 function EyeIcon({ open }) {
@@ -16,84 +16,81 @@ function EyeIcon({ open }) {
   );
 }
 
-export default function Signup() {
-  const [form, setForm] = useState({ email: "", username: "", password: "", confirmPassword: "" });
-  const [sent, setSent] = useState(false);
+export default function ResetPassword() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token");
+  const navigate = useNavigate();
+
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const submit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) {
+    if (password !== confirmPassword) {
       alert("Passwords do not match");
       return;
     }
-    if (form.password.length < 8) {
+    if (password.length < 8) {
       alert("Password must be at least 8 characters");
       return;
     }
 
     setLoading(true);
     try {
-      await api.post("/auth/signup", form);
-      setSent(true);
+      await api.post("/auth/reset-password", { token, password, confirmPassword });
+      setSuccess(true);
     } catch (err) {
-      alert(err.response?.data?.error || "Signup failed");
+      alert(err.response?.data?.error || "Password reset failed. The link may have expired.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (sent) {
+  if (!token) {
     return (
       <div className="max-w-sm mx-auto bg-white rounded-2xl p-8 shadow-sm text-center space-y-3">
-        <h2 className="text-xl font-bold text-orange">Check your email!</h2>
-        <p className="text-sm text-ink/70">
-          We've sent a verification link to <strong>{form.email}</strong>. Verify your account to claim your sign-up coins.
-        </p>
+        <h1 className="text-xl font-bold text-orange">Invalid Link</h1>
+        <p className="text-sm text-ink/70">No password reset token was found in the link.</p>
+        <Link to="/login" className="inline-block text-sm font-semibold text-blue underline">
+          Go to log in
+        </Link>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="max-w-sm mx-auto bg-white rounded-2xl p-8 shadow-sm text-center space-y-4">
+        <h1 className="text-2xl font-bold text-orange">Password Reset!</h1>
+        <p className="text-sm text-ink/70">Your password has been successfully updated.</p>
+        <button
+          onClick={() => navigate("/login")}
+          className="w-full bg-blue text-ink py-3 rounded-full font-semibold hover:opacity-90 transition"
+        >
+          Log in with new password
+        </button>
       </div>
     );
   }
 
   return (
-    <form onSubmit={submit} className="max-w-sm mx-auto bg-white rounded-2xl p-8 shadow-sm space-y-4">
-      <h1 className="text-2xl font-bold text-orange">Sign up</h1>
+    <form onSubmit={handleSubmit} className="max-w-sm mx-auto bg-white rounded-2xl p-8 shadow-sm space-y-4">
+      <h1 className="text-2xl font-bold text-orange">Set New Password</h1>
 
       <div>
-        <label className="block text-xs font-semibold text-ink/70 mb-1">Username</label>
-        <input
-          required
-          type="text"
-          placeholder="e.g. wanderer_42 (3-20 characters)"
-          value={form.username}
-          className="w-full border border-blue rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange"
-          onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-ink/70 mb-1">Email</label>
-        <input
-          required
-          type="email"
-          placeholder="name@example.com"
-          value={form.email}
-          className="w-full border border-blue rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-orange"
-          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-semibold text-ink/70 mb-1">Password</label>
+        <label className="block text-xs font-semibold text-ink/70 mb-1">New Password</label>
         <div className="relative">
           <input
             required
             placeholder="At least 8 characters"
             type={showPassword ? "text" : "password"}
-            value={form.password}
+            value={password}
             className="w-full border border-blue rounded-lg p-3 pr-11 text-sm focus:outline-none focus:ring-1 focus:ring-orange"
-            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            onChange={(e) => setPassword(e.target.value)}
           />
           <button
             type="button"
@@ -107,15 +104,15 @@ export default function Signup() {
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-ink/70 mb-1">Confirm Password</label>
+        <label className="block text-xs font-semibold text-ink/70 mb-1">Confirm New Password</label>
         <div className="relative">
           <input
             required
-            placeholder="Re-enter your password"
+            placeholder="Re-enter your new password"
             type={showConfirmPassword ? "text" : "password"}
-            value={form.confirmPassword}
+            value={confirmPassword}
             className="w-full border border-blue rounded-lg p-3 pr-11 text-sm focus:outline-none focus:ring-1 focus:ring-orange"
-            onChange={(e) => setForm((f) => ({ ...f, confirmPassword: e.target.value }))}
+            onChange={(e) => setConfirmPassword(e.target.value)}
           />
           <button
             type="button"
@@ -132,15 +129,8 @@ export default function Signup() {
         disabled={loading}
         className="w-full bg-orange text-cream py-3 rounded-full font-semibold hover:opacity-90 transition disabled:opacity-50"
       >
-        {loading ? "Creating account…" : "Sign up"}
+        {loading ? "Updating password…" : "Reset password"}
       </button>
-
-      <p className="text-xs text-center text-ink/60">
-        Already have an account?{" "}
-        <Link to="/login" className="text-blue font-semibold hover:underline">
-          Log in
-        </Link>
-      </p>
     </form>
   );
 }
