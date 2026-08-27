@@ -5,7 +5,6 @@ import Product from "../models/Product.js";
 import { applyCoinDelta } from "../services/coinEngine.js";
 import { optionalAuth, requireAuth } from "../middleware/auth.js";
 import { engagementLimiter } from "../middleware/rateLimit.js";
-import User from "../models/User.js";
 
 const router = Router();
 const COIN_VALUES = { like: 5, comment: 10, share: 15 };
@@ -36,7 +35,7 @@ router.post("/like", engagementLimiter, optionalAuth, async (req, res) => {
       ? { userId: req.user._id }
       : { sessionId: ensureGuestSession(req, res) };
 
-    const coins = req.user ? COIN_VALUES.like : 0; // guests earn 0 spendable coins until they sign up
+    const coins = req.user ? COIN_VALUES.like : 0;
     const engagement = await Engagement.create({ ...identity, productId, type: "like", coinsAwarded: coins });
 
     if (req.user && coins > 0) {
@@ -49,7 +48,10 @@ router.post("/like", engagementLimiter, optionalAuth, async (req, res) => {
   }
 });
 
-// POST /api/engagements/comment — requires an account (coins only make sense for real users)
+// POST /api/engagements/comment — unlimited comments, EVERY one earns coins.
+// Unlock progress only cares whether at least one comment exists in the
+// last 24h (see unlockEngine.js) — this route doesn't need to know or care
+// about that; it just always records and rewards.
 router.post("/comment", engagementLimiter, requireAuth, async (req, res) => {
   try {
     const { productId, text } = req.body;
@@ -59,34 +61,28 @@ router.post("/comment", engagementLimiter, requireAuth, async (req, res) => {
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ error: "Product not found" });
 
-    // First comment on this product earns coins (unique index below enforces
-    // one rewarded comment per user per product); further comments still
-    // save and display, just without a second coin payout.
-    let coinsAwarded = 0;
-    let engagement;
-    try {
-      engagement = await Engagement.create({
-        userId: req.user._id, productId, type: "comment", text: text.trim(), coinsAwarded: COIN_VALUES.comment,
-      });
-      coinsAwarded = COIN_VALUES.comment;
-      await applyCoinDelta({ userId: req.user._id, delta: COIN_VALUES.comment, reason: "engagement:comment", refId: engagement._id });
-    } catch (err) {
-      if (err.code !== 11000) throw err;
-      // Reward already claimed on this product — still save the comment itself,
-      // just as a non-unique, non-rewarded entry so it shows up in the list.
-      engagement = await Engagement.create({
-        userId: req.user._id, productId, type: "comment", text: text.trim(), coinsAwarded: 0,
-      });
-    }
+    const engagement = await Engagement.create({
+      userId: req.user._id,
+      productId,
+      type: "comment",
+      text: text.trim(),
+      coinsAwarded: COIN_VALUES.comment,
+    });
 
-    res.status(201).json({ engagement, coinsAwarded });
+    await applyCoinDelta({
+      userId: req.user._id,
+      delta: COIN_VALUES.comment,
+      reason: "engagement:comment",
+      refId: engagement._id,
+    });
+
+    res.status(201).json({ engagement, coinsAwarded: COIN_VALUES.comment });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST /api/engagements/share/confirm — bottleneck 12.1: honor-system + confirmation click,
-// never trust the initial share-intent click alone.
+// POST /api/engagements/share/confirm
 router.post("/share/confirm", engagementLimiter, requireAuth, async (req, res) => {
   try {
     const { productId, platform } = req.body;
@@ -111,8 +107,11 @@ router.post("/share/confirm", engagementLimiter, requireAuth, async (req, res) =
   }
 });
 
-const RESET_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 hours
+const RESET_COOLDOWN_MS = 3 * 60 * 60 * 1000;
 
+// POST /api/engagements/reset — comments are deliberately NOT cleared here.
+// They're a visible usage metric and already expire naturally after 24h for
+// unlock purposes, so there's no reason to wipe them on a reset.
 router.post("/reset", requireAuth, async (req, res) => {
   try {
     const user = req.user;
@@ -138,7 +137,7 @@ router.post("/reset", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/engagements/comments/:productId — public list of comments on a product
+// GET /api/engagements/comments/:productId — public list, never deleted by expiration
 router.get("/comments/:productId", async (req, res) => {
   try {
     const comments = await Engagement.find({
@@ -183,10 +182,8 @@ router.put("/comments/:id", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/engagements/comments/:id — remove your own comment.
-// Coins already earned from a first comment are NOT clawed back — deleting
-// just removes the comment's visibility, consistent with how deleting a
-// purchase doesn't refund coins either.
+// DELETE /api/engagements/comments/:id — user-initiated deletion only.
+// Coins already earned are not clawed back.
 router.delete("/comments/:id", requireAuth, async (req, res) => {
   try {
     const comment = await Engagement.findOneAndDelete({
