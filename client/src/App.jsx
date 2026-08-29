@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
+import MagicWand from "./components/MagicWand.jsx";
 import Home from "./pages/Home.jsx";
 import Products from "./pages/Products.jsx";
 import ProductDetail from "./pages/ProductDetail.jsx";
@@ -48,6 +49,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col relative">
+      <MagicWand />
       <img
         key={bgSrc}
         src={bgSrc}
