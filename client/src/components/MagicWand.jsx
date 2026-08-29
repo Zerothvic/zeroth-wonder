@@ -12,24 +12,24 @@ export default function MagicWand() {
   const lastPosRef = useRef({ x: -100, y: -100, time: Date.now() });
 
   useEffect(() => {
-    const handlePointerMove = (e) => {
+    const updatePosition = (clientX, clientY) => {
       const now = Date.now();
       const dt = Math.max(1, now - lastPosRef.current.time);
-      const vx = (e.clientX - lastPosRef.current.x) / dt;
-      const vy = (e.clientY - lastPosRef.current.y) / dt;
+      const vx = (clientX - lastPosRef.current.x) / dt;
+      const vy = (clientY - lastPosRef.current.y) / dt;
 
-      lastPosRef.current = { x: e.clientX, y: e.clientY, time: now };
-      setPos({ x: e.clientX, y: e.clientY });
+      lastPosRef.current = { x: clientX, y: clientY, time: now };
+      setPos({ x: clientX, y: clientY });
       setVelocity({ x: vx, y: vy });
-      if (!visible) setVisible(true);
+      setVisible(true);
 
-      // Subtle celestial trail
+      // Celestial dust trail
       if (Math.random() < 0.45) {
         const id = sparkleIdRef.current++;
         const newDust = {
           id,
-          x: e.clientX,
-          y: e.clientY,
+          x: clientX,
+          y: clientY,
           size: Math.random() * 3 + 1,
           color: ["#65BCB5", "#EDC45A", "#F2E2CF", "#E9CEAF"][Math.floor(Math.random() * 4)],
           dx: (Math.random() - 0.5) * 12 - vx * 2.5,
@@ -43,11 +43,8 @@ export default function MagicWand() {
       }
     };
 
-    const handlePointerLeave = () => setVisible(false);
-
-    const handlePointerDown = (e) => {
-      const target = e.target;
-      const isClickable = target.closest(
+    const triggerBurst = (clientX, clientY, target) => {
+      const isClickable = target?.closest?.(
         "button, a, input, select, textarea, [role='button'], .clickable, label"
       );
 
@@ -60,8 +57,8 @@ export default function MagicWand() {
         const speed = isClickable ? Math.random() * 70 + 35 : Math.random() * 35 + 15;
         return {
           id: sparkleIdRef.current++,
-          x: e.clientX,
-          y: e.clientY,
+          x: clientX,
+          y: clientY,
           dx: Math.cos(angle) * speed,
           dy: Math.sin(angle) * speed,
           color: ["#65BCB5", "#EDC45A", "#F2E2CF", "#E9CEAF", "#FFFFFF"][
@@ -77,16 +74,58 @@ export default function MagicWand() {
       }, 600);
     };
 
+    // Desktop pointer handlers
+    const handlePointerMove = (e) => {
+      if (e.pointerType === "touch") return; // Let touch events handle mobile
+      updatePosition(e.clientX, e.clientY);
+    };
+
+    const handlePointerDown = (e) => {
+      if (e.pointerType === "touch") return;
+      triggerBurst(e.clientX, e.clientY, e.target);
+    };
+
+    const handlePointerLeave = () => setVisible(false);
+
+    // Mobile touch handlers
+    const handleTouchStart = (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      updatePosition(touch.clientX, touch.clientY);
+      triggerBurst(touch.clientX, touch.clientY, e.target);
+    };
+
+    const handleTouchMove = (e) => {
+      const touch = e.touches[0];
+      if (!touch) return;
+      updatePosition(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchEnd = () => {
+      // Fade out wand shortly after finger lifts off screen
+      setTimeout(() => setVisible(false), 800);
+    };
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     window.addEventListener("pointerdown", handlePointerDown);
     document.body.addEventListener("pointerleave", handlePointerLeave);
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerdown", handlePointerDown);
       document.body.removeEventListener("pointerleave", handlePointerLeave);
+
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
     };
-  }, [visible]);
+  }, []);
 
   if (!visible) return null;
 
