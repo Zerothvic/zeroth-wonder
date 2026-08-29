@@ -6,6 +6,8 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     displayName: { type: String, trim: true },
+    avatarUrl: { type: String, default: null },
+    avatarPublicId: { type: String, default: null },
     isVerified: { type: Boolean, default: false },
     verificationToken: { type: String },
     resetPasswordToken: { type: String },
