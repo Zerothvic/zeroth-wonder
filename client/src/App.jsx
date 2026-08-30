@@ -21,10 +21,8 @@ import Verify from "./pages/Verify.jsx";
 const DEFAULT_BG = "/images/home-bg.jpg";
 const BACKGROUNDS = [
   { match: (path) => path === "/", src: "/images/home-bg.png" },
-  { match: (path) => path.startsWith("/products/"), src: "/images/products-bg.jpg" }, // product detail
-  { match: (path) => path === "/products", src: "/images/products-bg.png" },
-  { match: (path) => path === "/profile", src: "/images/Profile-bg.png" },
-  { match: (path) => path === "/checkout", src: "/images/checkout-bg.jpg" },
+  { match: (path) => path.startsWith("/products"), src: "/images/products-bg.png" }, // matches /products and /products/:id
+  { match: (path) => path === "/profile" || path === "/checkout", src: "/images/Profile-bg.png" }, // matches profile & checkout
   { match: (path) => path === "/admin", src: "/images/admin-bg.png" },
   {
     match: (path) => ["/login", "/signup", "/reset-password"].includes(path),

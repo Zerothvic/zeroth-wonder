@@ -25,7 +25,6 @@ function DiePips({ n }) {
   );
 }
 
-// Real dice rule: opposite faces always sum to 7.
 function getFaces(front) {
   const back = 7 - front;
   const remaining = [1, 2, 3, 4, 5, 6].filter((n) => n !== front && n !== back);
@@ -73,46 +72,147 @@ const STEPS = ["", "", "", ""];
 export default function Home() {
   return (
     <div className="space-y-16">
-      <section className="text-center py-12 px-4 sm:px-2">
-        <h1
-          className="relative inline-block font-magic font-black uppercase whitespace-nowrap mb-1"
-          style={{
-            fontSize: "clamp(1.75rem, 8vw, 4.5rem)",
-            letterSpacing: "0.05em",
-          }}
-        >
-          <span
-            className="bg-clip-text text-transparent"
+      <section className="text-center py-10 px-4 sm:px-2 flex flex-col items-center">
+        {/* Banner Section */}
+        <div className="relative inline-flex flex-col items-center justify-center px-8 sm:px-20 py-12 sm:py-16 max-w-[96vw] mb-12">
+          
+          {/* Synchronized Paint Canvas Mask (Sweeps in from Left-to-Right) */}
+          <div
+            className="absolute -inset-x-8 -inset-y-10 sm:-inset-x-20 sm:-inset-y-16 -z-10 pointer-events-none select-none drop-shadow-md"
             style={{
-              backgroundImage:
-                "linear-gradient(90deg, #F2E2CF, #FFFFFF, #EDC45A, #65BCB5, #FFFFFF, #F2E2CF)",
-              backgroundSize: "300% auto",
-              animation: "text-shimmer 10s linear infinite",
-              filter: "drop-shadow(1px 1px 2px rgba(43,33,24,0.3))",
+              animation: "paint-reveal-sweep 30s cubic-bezier(0.2, 0, 0.4, 1) infinite",
             }}
           >
-            ZEROTH WONDER
-          </span>
-        </h1>
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 1000 500"
+              preserveAspectRatio="none"
+            >
+              <defs>
+                <filter id="distressedBrush" x="-10%" y="-10%" width="120%" height="120%">
+                  <feTurbulence
+                    type="fractalNoise"
+                    baseFrequency="0.07 0.012"
+                    numOctaves="5"
+                    result="noise"
+                  />
+                  <feDisplacementMap
+                    in="SourceGraphic"
+                    in2="noise"
+                    scale="32"
+                    xChannelSelector="R"
+                    yChannelSelector="G"
+                    result="textured"
+                  />
+                </filter>
 
-        <p
-          className="font-elongated italic whitespace-nowrap mb-14"
-          style={{ fontSize: "clamp(1rem, 3.5vw, 2.25rem)", letterSpacing: "0.03em" }}
-        >
-          <span
-            className="bg-clip-text text-transparent"
+                <filter id="fineBristles" x="-10%" y="-10%" width="120%" height="120%">
+                  <feTurbulence
+                    type="turbulence"
+                    baseFrequency="0.22 0.018"
+                    numOctaves="4"
+                    result="bristles"
+                  />
+                  <feDisplacementMap
+                    in="SourceGraphic"
+                    in2="bristles"
+                    scale="20"
+                    xChannelSelector="R"
+                    yChannelSelector="G"
+                  />
+                </filter>
+              </defs>
+
+              {/* Background Splatters */}
+              <g fill="#FFFFFF" opacity="0.65">
+                <circle cx="70" cy="340" r="4" />
+                <circle cx="100" cy="380" r="2.5" />
+                <circle cx="120" cy="360" r="5" />
+                <circle cx="140" cy="410" r="2" />
+                <circle cx="170" cy="390" r="3.5" />
+                <circle cx="210" cy="405" r="3" />
+                <circle cx="250" cy="425" r="4.5" />
+                <circle cx="290" cy="395" r="2.5" />
+                <circle cx="350" cy="410" r="3.5" />
+                <circle cx="430" cy="420" r="2.5" />
+
+                <circle cx="810" cy="70" r="3.5" />
+                <circle cx="840" cy="110" r="4.5" />
+                <circle cx="880" cy="90" r="2.5" />
+                <circle cx="910" cy="130" r="3.5" />
+                <circle cx="950" cy="110" r="3" />
+              </g>
+
+              {/* Layer 1: Bristle Feathering */}
+              <g filter="url(#fineBristles)" opacity="0.75" fill="#FFFFFF">
+                <path d="M 10,15 L 340,130 L 760,150 L 990,170 L 980,440 L 680,410 L 280,330 L 5,190 Z" />
+              </g>
+
+              {/* Layer 2: Main Heavy Textured Sweep Body */}
+              <g filter="url(#distressedBrush)" fill="#FFFFFF">
+                <path d="M 25,40 C 220,130 440,160 965,195 C 980,360 840,425 640,395 C 430,370 190,310 35,275 C 5,200 10,90 25,40 Z" />
+                <path d="M 80,75 C 340,140 600,160 925,210 C 950,395 770,430 550,380 C 290,330 120,275 60,200 Z" />
+              </g>
+
+              {/* Layer 3: Dry Streak Lines */}
+              <g stroke="#FFFFFF" strokeLinecap="round" opacity="0.95">
+                <path d="M 5,20 L 350,145" strokeWidth="22" filter="url(#fineBristles)" />
+                <path d="M 50,60 L 430,170" strokeWidth="18" filter="url(#fineBristles)" />
+                <path d="M 100,95 L 500,190" strokeWidth="14" filter="url(#fineBristles)" />
+
+                <path d="M 540,170 L 985,215" strokeWidth="26" filter="url(#fineBristles)" />
+                <path d="M 600,205 L 990,280" strokeWidth="20" filter="url(#fineBristles)" />
+                <path d="M 670,255 L 970,355" strokeWidth="16" filter="url(#fineBristles)" />
+                <path d="M 720,310 L 940,435" strokeWidth="12" filter="url(#fineBristles)" />
+              </g>
+            </svg>
+          </div>
+
+          {/* Title */}
+          <h1
+            className="relative font-magic font-black uppercase whitespace-nowrap mb-1 select-none"
             style={{
-              backgroundImage:
-                "linear-gradient(90deg, #F2E2CF, #FFFFFF, #EDC45A, #65BCB5, #FFFFFF, #F2E2CF)",
-              backgroundSize: "300% auto",
-              animation: "text-shimmer 10s linear infinite",
-              filter: "drop-shadow(1px 1px 2px rgba(43,33,24,0.3))",
+              fontSize: "clamp(1.75rem, 8vw, 4.5rem)",
+              letterSpacing: "0.05em",
             }}
           >
-            wonderland......for adults!
-          </span>
-        </p>
-        <Link to="/products" className="bg-blue text-white px-8 py-3 rounded-full font-semibold hover:opacity-90">
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, #2B2118, #ED802A, #65BCB5, #ED802A, #2B2118)",
+                backgroundSize: "300% auto",
+                animation: "text-shimmer 10s linear infinite",
+                filter: "drop-shadow(1px 1px 1px rgba(0,0,0,0.12))",
+              }}
+            >
+              ZEROTH WONDER
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p
+            className="font-elongated italic whitespace-nowrap mb-0 select-none"
+            style={{ fontSize: "clamp(1rem, 3.5vw, 2.25rem)", letterSpacing: "0.03em" }}
+          >
+            <span
+              className="bg-clip-text text-transparent font-bold"
+              style={{
+                backgroundImage:
+                  "linear-gradient(90deg, #2B2118, #ED802A, #65BCB5, #2B2118)",
+                backgroundSize: "300% auto",
+                animation: "text-shimmer 10s linear infinite",
+              }}
+            >
+              wonderland......for adults!
+            </span>
+          </p>
+        </div>
+
+        <Link
+          to="/products"
+          className="bg-blue text-white px-8 py-3 rounded-full font-semibold hover:opacity-90 transition shadow-md"
+        >
           Explore
         </Link>
       </section>
